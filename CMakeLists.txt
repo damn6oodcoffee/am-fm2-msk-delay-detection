@@ -25,6 +25,7 @@ find_package(OpenGL REQUIRED)
 add_executable(${PROJECT_NAME}
                MainWindow.cpp
                SignalModel.cpp
+               Tasks.cpp
                ${GLAD_DIR}/src/glad.c
                ${IMGUI_DIR}/backends/imgui_impl_opengl3.cpp
                ${IMGUI_DIR}/backends/imgui_impl_glfw.cpp

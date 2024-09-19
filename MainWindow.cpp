@@ -10,13 +10,15 @@
 #include "implot.h"
 
 #include "SignalModel.hpp"
-
+#include "Tasks.hpp"
 
 static void glfw_error_callback(int error, const char* description) {
     fprintf(stderr, "GLFW Error %d: %s\n", error, description);
 }
 
 int main() {
+
+#if 1
     glfwSetErrorCallback(glfw_error_callback);
     if (!glfwInit())
         return -1;
@@ -55,17 +57,6 @@ int main() {
     bool show_demo_window = true;
     bool show_another_window = false;
     ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
-    
-    SineSignal signal(1.0, 0.0, 20.0);
-    signal.sample(41);
-    auto&& xData = signal.getTimeSamples();
-    auto&& yData = signal.getAmplitudeSamples();
-
-    SineSignalASK signalASK(20.0, 0.0, 1000.0, 10);
-    signalASK.bits = {1, 0, 0, 0, 1, 1};
-    signalASK.sample(12);
-    auto&& xDataASK = signalASK.getTimeSamples();
-    auto&& yDataASK = signalASK.getAmplitudeSamples();
 
     std::filesystem::path cwd = std::filesystem::current_path();
     std::cout << "current path: " << cwd.string() << std::endl;
@@ -77,6 +68,37 @@ int main() {
         fontPath.string().c_str(), 
         18
     );
+#endif
+
+    SineSignal signal(1.0, 0.0, 20.0);
+    signal.sample(41);
+    auto&& xData = signal.getTimeSamples();
+    auto&& yData = signal.getAmplitudeSamples();
+
+    int bitCount = 20;
+    int bitRate = 3;
+    double duration = static_cast<double>(bitCount) / bitRate; 
+    double delay = 10.73;
+    SineSignalASK signalASK(20.0, 0.0, 1000.0, bitRate);
+    signalASK.generateDelayed(delay, duration);
+    auto&& xDataASK = signalASK.getTimeSamples();
+    auto&& yDataASK = signalASK.getAmplitudeSamples();
+
+    auto refSignal = signalASK.getReferenceSignal(delay, duration);
+    auto&& xDataRefASK = refSignal.getTimeSamples();
+    auto&& yDataRefASK = refSignal.getAmplitudeSamples();
+    
+    auto crosscorr = computeCrossCorrelation(yDataASK, yDataRefASK);
+    std::vector<double> crosscorrValue;
+    std::vector<double> crosscorrDelay;
+    double timeInterval{ 1.0 / refSignal.getSampleRate() };
+    for (auto& elt : crosscorr) {
+        crosscorrDelay.push_back(elt.x * timeInterval);
+        crosscorrValue.push_back(elt.y);
+    }
+
+
+    ExperimentResult expResult;
 
     while (!glfwWindowShouldClose(window)) {
         glfwPollEvents();
@@ -116,7 +138,6 @@ int main() {
             ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);
             ImGui::End();
         }
-
         // 3. Show another simple window.
         if (show_another_window) {
             ImGui::Begin("Another Window", &show_another_window);   // Pass a pointer to our bool variable (the window will have a closing button that will clear the bool when clicked)
@@ -126,27 +147,99 @@ int main() {
             ImGui::End();
         }
 
-        // 4. ImPlot test window.
+        // 4. Control window
         {
-            ImGui::Begin("My ImPlot window");
-            if (ImPlot::BeginPlot("My Plot")) {
-                if (xData.size() == yData.size()) {
-                    auto dataSize = static_cast<int>(xData.size());
-                    ImPlot::SetNextLineStyle(ImVec4(1.0f, 0.0f, 0.0f, 1.0f), 1.5f);
-                    ImPlot::PlotLine("My Line Plot", &xData[0], 
-                                    &yData[0], dataSize);
+            ImGui::Begin("Control Window");
+
+            ImGui::SeparatorText("General Options");
+            ImGui::PushItemWidth(150.0);
+            // Sample Rate Input
+            constexpr int bufsize{32};
+            static char sampleRateBuf[bufsize] = "0.5";
+            static double sampleRate{};
+            ImGui::InputText("Sample Rate", sampleRateBuf, bufsize, ImGuiInputTextFlags_CharsDecimal | ImGuiInputTextFlags_CharsNoBlank);
+            // Bit Count Input
+            static char bitCountBuf[bufsize] = "40";
+            static int bitCount{};
+            ImGui::InputText("Bit Count", bitCountBuf, bufsize, ImGuiInputTextFlags_CharsDecimal | ImGuiInputTextFlags_CharsNoBlank);
+            // Bit Rate Input
+            static char bitRateBuf[bufsize] = "20";
+            static double bitRate{}; 
+            ImGui::InputText("Bit Rate", bitRateBuf, bufsize, ImGuiInputTextFlags_CharsDecimal | ImGuiInputTextFlags_CharsNoBlank);
+            // Carrier Input
+            static char carrierBuf[bufsize] = "0.05";
+            static double carrier{};
+            ImGui::InputText("Carrier(kHz)", carrierBuf, bufsize, ImGuiInputTextFlags_CharsDecimal | ImGuiInputTextFlags_CharsNoBlank);
+            // Delay Input
+            static char delayBuf[bufsize] = "2130";
+            static double delay{};
+            ImGui::InputText("Delay(ms)", delayBuf, bufsize, ImGuiInputTextFlags_CharsDecimal | ImGuiInputTextFlags_CharsNoBlank);
+            // SNR Input
+            static char snrBuf[bufsize] = "0";
+            static double snr{};
+            ImGui::InputText("SNR(dB)", snrBuf, bufsize, ImGuiInputTextFlags_CharsDecimal | ImGuiInputTextFlags_CharsNoBlank);
+            
+            ImGui::SeparatorText("Modulation Parameters");
+            static int modulationType{0};
+            ImGui::RadioButton("AM", &modulationType, 0); ImGui::SameLine();
+            ImGui::RadioButton("FM2", &modulationType, 1); ImGui::SameLine();
+            ImGui::RadioButton("MSK", &modulationType, 2);
+
+            ImGui::SeparatorText("");
+            if (ImGui::Button("Generate")) {
+                sampleRate = 1e3 * std::atof(sampleRateBuf); // "1e3 * " - kHz to Hz
+                bitCount = std::atoi(bitCountBuf);
+                bitRate = std::atof(bitRateBuf);
+                carrier = 1e3 * std::atof(carrierBuf); // "1e3 * " - kHz to Hz
+                delay = 1e-3 * std::atof(delayBuf); // "1e-3 * " - msec to sec
+                snr = std::atof(snrBuf);
+                expResult = singleExperimentAM(0,0, sampleRate, bitCount, bitRate, carrier, delay, snr);
+            }
+            ImGui::SameLine();
+            static char delayEstimateBuf[bufsize];
+            if (std::snprintf(delayEstimateBuf, bufsize, "%f", expResult.estimatedDelay) > 0)
+                ImGui::InputText("Delay Estimate", delayEstimateBuf, bufsize, ImGuiInputTextFlags_ReadOnly);
+            ImGui::PopItemWidth();
+            ImGui::End();
+        }
+
+        // 5. ImPlot test window.
+        {
+            ImGui::Begin("Plots");
+
+            if (ImPlot::BeginPlot("Reference Signal")) {
+                if (expResult.refSignalTime.size() != 0 && expResult.refSignalTime.size() == expResult.refSignalAmplitude.size()) {
+                    auto dataSize = static_cast<int>(expResult.refSignalTime.size());
+                    //ImPlot::SetNextLineStyle(ImVec4(1.0f, 0.0f, 0.0f, 1.0f), 1.5f);
+                    ImPlot::PlotLine("Reference Signal", &expResult.refSignalTime[0], 
+                                    &expResult.refSignalAmplitude[0], dataSize);
                 }
                 ImPlot::EndPlot();
             }
-            if (ImPlot::BeginPlot("My Plot ASK")) {
-                if (xDataASK.size() == yDataASK.size()) {
-                    auto dataSize = static_cast<int>(xDataASK.size());
+            if (ImPlot::BeginPlot("Delayed Signal")) {
+                if (expResult.delayedSignalTime.size() != 0 && expResult.delayedSignalTime.size() == expResult.delayedSignalAmplitude.size()) {
+                    auto dataSize = static_cast<int>(expResult.delayedSignalTime.size());
+                    //ImPlot::SetNextLineStyle(ImVec4(1.0f, 0.0f, 0.0f, 1.0f), 1.5f);
+                    ImPlot::PlotLine("Delayed Signal", &expResult.delayedSignalTime[0], 
+                                    &expResult.delayedSignalAmplitude[0], dataSize);
+                    double region[2] = {expResult.refSignalTime.front(), expResult.refSignalTime.back()};
                     ImPlot::SetNextLineStyle(ImVec4(1.0f, 0.0f, 0.0f, 1.0f), 1.5f);
-                    ImPlot::PlotLine("My Line Plot", &xDataASK[0], 
-                                    &yDataASK[0], dataSize);
+                    ImPlot::PlotInfLines("Ref Signal Region", region, 2);
+                    ImPlot::TagX(region[0], ImVec4(1.0, 0.0, 0.0, 1.0));
+                    ImPlot::TagX(region[1], ImVec4(1.0, 0.0, 0.0, 1.0));
                 }
                 ImPlot::EndPlot();
             }
+            if (ImPlot::BeginPlot("Cross-correlation")) {
+                if (expResult.crosscorrDelay.size() != 0 && expResult.crosscorrDelay.size() == expResult.crosscorrValue.size()) {
+                    auto dataSize = static_cast<int>(expResult.crosscorrDelay.size());
+                    //ImPlot::SetNextLineStyle(ImVec4(1.0f, 0.0f, 0.0f, 1.0f), 1.5f);
+                    ImPlot::PlotLine("Cross-correlation", &expResult.crosscorrDelay[0], 
+                                    &expResult.crosscorrValue[0], dataSize);
+                }
+                ImPlot::EndPlot();
+            }
+
             ImGui::End();
         }
 
