@@ -70,33 +70,6 @@ int main() {
     );
 #endif
 
-    SineSignal signal(1.0, 0.0, 20.0);
-    signal.sample(41);
-    auto&& xData = signal.getTimeSamples();
-    auto&& yData = signal.getAmplitudeSamples();
-
-    int bitCount = 20;
-    int bitRate = 3;
-    double duration = static_cast<double>(bitCount) / bitRate; 
-    double delay = 10.73;
-    SineSignalASK signalASK(20.0, 0.0, 1000.0, bitRate);
-    signalASK.generateDelayed(delay, duration);
-    auto&& xDataASK = signalASK.getTimeSamples();
-    auto&& yDataASK = signalASK.getAmplitudeSamples();
-
-    auto refSignal = signalASK.getReferenceSignal(delay, duration);
-    auto&& xDataRefASK = refSignal.getTimeSamples();
-    auto&& yDataRefASK = refSignal.getAmplitudeSamples();
-    
-    auto crosscorr = computeCrossCorrelation(yDataASK, yDataRefASK);
-    std::vector<double> crosscorrValue;
-    std::vector<double> crosscorrDelay;
-    double timeInterval{ 1.0 / refSignal.getSampleRate() };
-    for (auto& elt : crosscorr) {
-        crosscorrDelay.push_back(elt.x * timeInterval);
-        crosscorrValue.push_back(elt.y);
-    }
-
 
     ExperimentResult expResult;
 
@@ -181,8 +154,8 @@ int main() {
             
             ImGui::SeparatorText("Modulation Parameters");
             static int modulationType{0};
-            ImGui::RadioButton("AM", &modulationType, 0); ImGui::SameLine();
-            ImGui::RadioButton("FM2", &modulationType, 1); ImGui::SameLine();
+            ImGui::RadioButton("ASK", &modulationType, 0); ImGui::SameLine();
+            ImGui::RadioButton("BPSK", &modulationType, 1); ImGui::SameLine();
             ImGui::RadioButton("MSK", &modulationType, 2);
 
             ImGui::SeparatorText("");
@@ -193,7 +166,10 @@ int main() {
                 carrier = 1e3 * std::atof(carrierBuf); // "1e3 * " - kHz to Hz
                 delay = 1e-3 * std::atof(delayBuf); // "1e-3 * " - msec to sec
                 snr = std::atof(snrBuf);
-                expResult = singleExperimentAM(0,0, sampleRate, bitCount, bitRate, carrier, delay, snr);
+                if (modulationType == 0)
+                    expResult = singleExperimentASK(0,0, sampleRate, bitCount, bitRate, carrier, delay, snr);
+                if (modulationType == 1)
+                    expResult = singleExperimentBPSK(sampleRate, bitCount, bitRate, carrier, delay, snr);
             }
             ImGui::SameLine();
             static char delayEstimateBuf[bufsize];
@@ -208,21 +184,21 @@ int main() {
             ImGui::Begin("Plots");
 
             if (ImPlot::BeginPlot("Reference Signal")) {
-                if (expResult.refSignalTime.size() != 0 && expResult.refSignalTime.size() == expResult.refSignalAmplitude.size()) {
-                    auto dataSize = static_cast<int>(expResult.refSignalTime.size());
+                if (expResult.refSignal.timeSamples.size() != 0 && expResult.refSignal.timeSamples.size() == expResult.refSignal.valueSamples.size()) {
+                    auto dataSize = static_cast<int>(expResult.refSignal.timeSamples.size());
                     //ImPlot::SetNextLineStyle(ImVec4(1.0f, 0.0f, 0.0f, 1.0f), 1.5f);
-                    ImPlot::PlotLine("Reference Signal", &expResult.refSignalTime[0], 
-                                    &expResult.refSignalAmplitude[0], dataSize);
+                    ImPlot::PlotLine("Reference Signal", &expResult.refSignal.timeSamples[0], 
+                                    &expResult.refSignal.valueSamples[0], dataSize);
                 }
                 ImPlot::EndPlot();
             }
             if (ImPlot::BeginPlot("Delayed Signal")) {
-                if (expResult.delayedSignalTime.size() != 0 && expResult.delayedSignalTime.size() == expResult.delayedSignalAmplitude.size()) {
-                    auto dataSize = static_cast<int>(expResult.delayedSignalTime.size());
+                if (expResult.delayedSignal.timeSamples.size() != 0 && expResult.delayedSignal.timeSamples.size() == expResult.delayedSignal.valueSamples.size()) {
+                    auto dataSize = static_cast<int>(expResult.delayedSignal.timeSamples.size());
                     //ImPlot::SetNextLineStyle(ImVec4(1.0f, 0.0f, 0.0f, 1.0f), 1.5f);
-                    ImPlot::PlotLine("Delayed Signal", &expResult.delayedSignalTime[0], 
-                                    &expResult.delayedSignalAmplitude[0], dataSize);
-                    double region[2] = {expResult.refSignalTime.front(), expResult.refSignalTime.back()};
+                    ImPlot::PlotLine("Delayed Signal", &expResult.delayedSignal.timeSamples[0], 
+                                    &expResult.delayedSignal.valueSamples[0], dataSize);
+                    double region[2] = {expResult.refSignal.timeSamples.front(), expResult.refSignal.timeSamples.back()};
                     ImPlot::SetNextLineStyle(ImVec4(1.0f, 0.0f, 0.0f, 1.0f), 1.5f);
                     ImPlot::PlotInfLines("Ref Signal Region", region, 2);
                     ImPlot::TagX(region[0], ImVec4(1.0, 0.0, 0.0, 1.0));
@@ -231,11 +207,11 @@ int main() {
                 ImPlot::EndPlot();
             }
             if (ImPlot::BeginPlot("Cross-correlation")) {
-                if (expResult.crosscorrDelay.size() != 0 && expResult.crosscorrDelay.size() == expResult.crosscorrValue.size()) {
-                    auto dataSize = static_cast<int>(expResult.crosscorrDelay.size());
+                if (expResult.crossCorrelation.timeSamples.size() != 0 && expResult.crossCorrelation.timeSamples.size() == expResult.crossCorrelation.valueSamples.size()) {
+                    auto dataSize = static_cast<int>(expResult.crossCorrelation.timeSamples.size());
                     //ImPlot::SetNextLineStyle(ImVec4(1.0f, 0.0f, 0.0f, 1.0f), 1.5f);
-                    ImPlot::PlotLine("Cross-correlation", &expResult.crosscorrDelay[0], 
-                                    &expResult.crosscorrValue[0], dataSize);
+                    ImPlot::PlotLine("Cross-correlation", &expResult.crossCorrelation.timeSamples[0], 
+                                    &expResult.crossCorrelation.valueSamples[0], dataSize);
                 }
                 ImPlot::EndPlot();
             }

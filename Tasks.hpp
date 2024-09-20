@@ -3,26 +3,25 @@
 #include "SignalModel.hpp"
 
 struct ExperimentResult {
-    std::vector<double> refSignalTime;
-    std::vector<double> refSignalAmplitude;
-    std::vector<double> delayedSignalTime;
-    std::vector<double> delayedSignalAmplitude;
-    std::vector<double> crosscorrDelay;
-    std::vector<double> crosscorrValue;
-
+    Samples<UnitDSP::Seconds, double> refSignal;
+    Samples<UnitDSP::Seconds, double> delayedSignal;
+    Samples<UnitDSP::Seconds, double> crossCorrelation;
     double estimatedDelay;
 };
 
-ExperimentResult singleExperimentAM(double amplitudeLow, double amplitudeHigh, 
-                                     SignalModel::Hertz sampleRate, size_t bitCount, double bitRate,
-                                     SignalModel::Hertz carrier, SignalModel::Seconds delay, SignalModel::dB snr);
+ExperimentResult doExperiment(SineSignalBitSampler& sampler, UnitDSP::Seconds duration,
+                              UnitDSP::Seconds delay, UnitDSP::dB SNR);
 
-ExperimentResult singleExperimentFM2(SignalModel::Hertz sampleRate, size_t bitCount,
-                                      double bitRate, SignalModel::Hertz carrier,
-                                      SignalModel::Seconds delay, SignalModel::dB SNR);
+ExperimentResult singleExperimentASK(double amplitudeLow, double amplitudeHigh, 
+                                     UnitDSP::Hertz sampleRate, size_t bitCount, double bitRate,
+                                     UnitDSP::Hertz carrier, UnitDSP::Seconds delay, UnitDSP::dB snr);
 
-ExperimentResult singleExperimentMSK(SignalModel::Hertz sampleRate, size_t bitCount, double bitRate,
-                                      SignalModel::Hertz carrier, SignalModel::Hertz frequenceDiff,
-                                      SignalModel::Seconds delay, SignalModel::dB SNR);
+ExperimentResult singleExperimentBPSK(UnitDSP::Hertz sampleRate, size_t bitCount,
+                                      double bitRate, UnitDSP::Hertz carrier,
+                                      UnitDSP::Seconds delay, UnitDSP::dB SNR);
+
+ExperimentResult singleExperimentMSK(UnitDSP::Hertz sampleRate, size_t bitCount, double bitRate,
+                                      UnitDSP::Hertz carrier, UnitDSP::Hertz frequenceDiff,
+                                      UnitDSP::Seconds delay, UnitDSP::dB SNR);
 
 #endif 
