@@ -61,7 +61,7 @@ int main() {
 
     std::filesystem::path cwd = std::filesystem::current_path();
     std::cout << "current path: " << cwd.string() << std::endl;
-    auto fontPath = std::filesystem::path(cwd.string() + "/../../imgui/misc/fonts/Roboto-Medium.ttf");
+    auto fontPath = std::filesystem::path(cwd.string() + "/../imgui/misc/fonts/Roboto-Medium.ttf");
     fontPath.make_preferred();
     std::cout << "font path: " << fontPath << std::endl;
     // Load font
