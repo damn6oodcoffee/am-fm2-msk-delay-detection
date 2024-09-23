@@ -61,9 +61,6 @@ struct Samples {
 class SignalModel {
 public:
     virtual Samples<double, double> sample(size_t count) = 0;
-    //virtual const std::vector<double>& getTimeSamples() const = 0;
-    //virtual const std::vector<double>& getAmplitudeSamples() const = 0;
-    //virtual void clear() = 0;
     virtual ~SignalModel() = 0;
 };
 
@@ -89,13 +86,7 @@ public:
     SineSignal(UnitDSP::Hertz carrierFreq, UnitDSP::Hertz sampleRate, UnitDSP::Radians phase);
 
     Samples<UnitDSP::Seconds, double> sample(size_t sampleCount);
-    //const std::vector<double>& getTimeSamples() const;
-    //const std::vector<double>& getAmplitudeSamples() const;
-    //void clear();
 
-private:
-    //std::vector<double> timeSamples_;
-    //std::vector<double> amplitudeSamples_;
 };
 
 
@@ -107,25 +98,25 @@ public:
     double getBitRate();
     void setBits(const std::vector<int>& bits);
     Samples<UnitDSP::Seconds, double> sample(size_t bitCount);
-    // const std::vector<double>& getTimeSamples() const;
-    // const std::vector<double>& getAmplitudeSamples() const;
-    // void clear();
 
 protected:
     virtual double sampleBit(int bit, double timePoint) = 0;
 
 private:
     std::vector<int> bits_;
-    // std::vector<double> timeSamples_;
-    // std::vector<double> amplitudeSamples_;
     double bitRate_;
 };
 
 
 class SineSignalASK : public SineSignalBitSampler {
 public:
-    SineSignalASK(UnitDSP::Hertz carrierFreq, UnitDSP::Hertz sampleRate, UnitDSP::Radians phase, double bitRate);
+    SineSignalASK(double lowAmplitude, double highAmplitude, UnitDSP::Hertz carrierFreq,
+                  UnitDSP::Hertz sampleRate, UnitDSP::Radians phase, double bitRate);
     double sampleBit(int bit, UnitDSP::Seconds timePoint);
+    
+private:
+    double lowAmp_;
+    double highAmp_;
 };
 
 
@@ -140,6 +131,8 @@ class SineSignalMSK : public SineSignalBitSampler {
 public:
     SineSignalMSK(UnitDSP::Hertz carrierFreq, UnitDSP::Hertz sampleRate, UnitDSP::Radians phase, double bitRate);
     double sampleBit(int bit, UnitDSP::Seconds timePoint);
+private:
+    UnitDSP::Hertz frequencyDiff_;
 };
 
 
@@ -161,36 +154,6 @@ private:
 };
 
 
-#if 0
-class SineSignalASK : public SineSignalModel {
-public:
-    SineSignalASK(UnitDSP::Hertz carrierFreq, UnitDSP::Radians phase, UnitDSP::Hertz sampleRate,
-                  size_t bitRate);
-    void sample(size_t bitCount);
-    const std::vector<double>& getTimeSamples() const;
-    const std::vector<double>& getAmplitudeSamples() const;
-    void clear();
-    void generateDelayed(SignalModel::UnitDSP::Seconds delay, 
-                         SignalModel::UnitDSP::Seconds duration);
-    SineSignalASK getReferenceSignal(SignalModel::UnitDSP::Seconds delay, 
-                                     SignalModel::UnitDSP::Seconds duration);
-    std::vector<int> bits;
-private:
-    UnitDSP::Radians phase_;
-    size_t bitRate_;
-
-    std::vector<double> timeSamples_;
-    std::vector<double> amplitudeSamples_;
-};
-
-
-#endif
-
-#if 0
-std::vector<double> getReferenceSineSignal(const SineSignalModel& srcSignal, 
-                                           SignalModel::UnitDSP::Seconds srcDelay, 
-                                           SignalModel::UnitDSP::Seconds duration);
-#endif
 
 Samples<int, double> computeCrossCorrelation(const std::vector<double>& sequenceA, 
                                              const std::vector<double>& sequenceB);

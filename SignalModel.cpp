@@ -138,18 +138,22 @@ Samples<UnitDSP::Seconds, double> SineSignalBitSampler::sample(size_t bitCount) 
 // }
 
 
-SineSignalASK::SineSignalASK(UnitDSP::Hertz carrierFreq, UnitDSP::Radians phase, UnitDSP::Hertz sampleRate, double bitRate)
+SineSignalASK::SineSignalASK(double lowAmplitude, double highAmplitude, UnitDSP::Hertz carrierFreq,
+                             UnitDSP::Hertz sampleRate, UnitDSP::Radians phase, double bitRate)
     : SineSignalBitSampler(carrierFreq, sampleRate, phase, bitRate)
+    , lowAmp_{lowAmplitude}
+    , highAmp_{highAmplitude}
 {}
 
 double SineSignalASK::sampleBit(int bit, UnitDSP::Seconds timePoint) {
-    double amplitude{ bit * sin(phase) };
+    double maxAmplitude{ bit == 1 ? highAmp_ : lowAmp_ };
+    double amplitude{ maxAmplitude * sin(phase) };
     phase = 2 * m_pi * getCarrierFrequency() * timePoint;
     return amplitude;
 }
 
 
-SineSignalBPSK::SineSignalBPSK(UnitDSP::Hertz carrierFreq, UnitDSP::Radians phase, UnitDSP::Hertz sampleRate, double bitRate)
+SineSignalBPSK::SineSignalBPSK(UnitDSP::Hertz carrierFreq, UnitDSP::Hertz sampleRate, UnitDSP::Radians phase, double bitRate)
     : SineSignalBitSampler(carrierFreq, sampleRate, phase, bitRate)
 {}
 
@@ -160,12 +164,20 @@ double SineSignalBPSK::sampleBit(int bit, UnitDSP::Seconds timePoint) {
 }
 
 
-SineSignalMSK::SineSignalMSK(UnitDSP::Hertz carrierFreq, UnitDSP::Radians phase, UnitDSP::Hertz sampleRate, double bitRate)
+SineSignalMSK::SineSignalMSK(UnitDSP::Hertz carrierFreq, UnitDSP::Hertz sampleRate, UnitDSP::Radians phase, double bitRate)
     : SineSignalBitSampler(carrierFreq, sampleRate, phase, bitRate)
+    , frequencyDiff_{bitRate / 2.0}
 {}
 
 double SineSignalMSK::sampleBit(int bit, UnitDSP::Seconds timePoint) {
-    return 0;
+    UnitDSP::Seconds dt{1.0 / getSampleRate()};
+    double amplitude{ sin(phase) };
+    if (bit == 0) {
+        phase += 2 * m_pi * getCarrierFrequency() * dt;
+    } else {
+        phase += 2 * m_pi * (getCarrierFrequency() + frequencyDiff_) * dt;
+    }
+    return amplitude;
 }
 
 
