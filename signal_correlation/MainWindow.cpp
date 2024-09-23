@@ -1,5 +1,6 @@
 
 #include <iostream>
+#include <future>
 #include <vector>
 #include <filesystem>
 #include <glad/glad.h>
@@ -60,7 +61,7 @@ int main() {
 
     std::filesystem::path cwd = std::filesystem::current_path();
     std::cout << "current path: " << cwd.string() << std::endl;
-    auto fontPath = std::filesystem::path(cwd.string() + "/../imgui/misc/fonts/Roboto-Medium.ttf");
+    auto fontPath = std::filesystem::path(cwd.string() + "/../../imgui/misc/fonts/Roboto-Medium.ttf");
     fontPath.make_preferred();
     std::cout << "font path: " << fontPath << std::endl;
     // Load font
@@ -71,8 +72,13 @@ int main() {
 #endif
 
 
-    ExperimentResult expResult;
+    ExperimentResult expResult{};
     expResult.estimatedDelay = 0.0;
+
+    std::future<StatResult> statResultFuture;
+    StatResult statResult{};
+    float statProgress{ -1.0 };
+    bool isStatExperimentInProcess{ false };
 
     while (!glfwWindowShouldClose(window)) {
         glfwPollEvents();
@@ -162,8 +168,7 @@ int main() {
             static double snrHigh{};
             static char repsPerSNRBuf[bufsize] = "100";
             static int repsPerSNR{};
-            static float statProgress{};
-
+           
 
             ImGui::SeparatorText("Modulation");
             static int modulationType{0};
@@ -207,18 +212,40 @@ int main() {
                 ImGui::InputText("SNR High(dB)", snrHighBuf, bufsize, ImGuiInputTextFlags_CharsDecimal | ImGuiInputTextFlags_CharsNoBlank);
                 ImGui::InputText("SNR Step Count", snrStepCountBuf, bufsize, ImGuiInputTextFlags_CharsDecimal | ImGuiInputTextFlags_CharsNoBlank);
                 ImGui::InputText("Repetitions Per SNR", repsPerSNRBuf, bufsize, ImGuiInputTextFlags_CharsDecimal | ImGuiInputTextFlags_CharsNoBlank);
+
+                ImGui::BeginDisabled(isStatExperimentInProcess);
                 if (ImGui::Button("Get Stats")) {
                     // Compute Statistics
+                    sampleRate = 1e3 * std::atof(sampleRateBuf); // "1e3 * " - kHz to Hz
+                    bitCount = std::atoi(bitCountBuf);
+                    bitRate = std::atof(bitRateBuf);
+                    carrier = 1e3 * std::atof(carrierBuf); // "1e3 * " - kHz to Hz
+                    delay = 1e-3 * std::atof(delayBuf); // "1e-3 * " - msec to sec
+                    snr = std::atof(snrBuf);
+                    lowAmp = std::atof(lowAmpBuf);
+                    highAmp = std::atof(highAmpBuf);
+                    snrLow = std::atof(snrLowBuf);
+                    snrHigh = std::atof(snrHighBuf);
+                    snrStepCount = std::atoi(snrStepCountBuf);
+                    repsPerSNR = std::atoi(repsPerSNRBuf);
+                    statResultFuture = std::async(std::launch::async, statisticalExperiment, 
+                                            lowAmp, highAmp, sampleRate, bitCount, bitRate, 
+                                            carrier, delay, snrLow, snrHigh, snrStepCount, 
+                                            repsPerSNR, &statProgress);
+                    isStatExperimentInProcess = true;
                 }
-                statProgress = 0.73;
+                ImGui::EndDisabled();
+
+                
                 ImGui::ProgressBar(statProgress, ImVec2(-1.0, 0.0));
+
             }
 
             ImGui::PopItemWidth();
             ImGui::End();
         }
 
-        // 5. ImPlot test window.
+        // 5. ImPlot window for signals.
         {
             ImGui::Begin("Plots");
 
@@ -255,6 +282,45 @@ int main() {
                 ImPlot::EndPlot();
             }
 
+            ImGui::End();
+        }
+
+        // Check if stat result is ready
+        {
+            if (statResultFuture.valid()) {
+                auto status = statResultFuture.wait_for(std::chrono::seconds(0));
+                if (status == std::future_status::ready) {
+                    statResult = statResultFuture.get();
+                    isStatExperimentInProcess = false;
+                    statProgress = -1.0;
+                }
+            }
+        }
+
+        // 6. ImPlot window for stat data
+        {
+            ImGui::Begin("Statistics");
+            if (ImPlot::BeginPlot("Statistics")) {
+                if (statResult.ASKprobVsSNR.timeSamples.size() != 0 && statResult.ASKprobVsSNR.timeSamples.size() == statResult.ASKprobVsSNR.valueSamples.size()) {
+                    auto dataSize = static_cast<int>(statResult.ASKprobVsSNR.timeSamples.size());
+                    //ImPlot::SetNextLineStyle(ImVec4(1.0f, 0.0f, 0.0f, 1.0f), 1.5f);
+                    ImPlot::PlotLine("ASK", &statResult.ASKprobVsSNR.timeSamples[0], 
+                                    &statResult.ASKprobVsSNR.valueSamples[0], dataSize);
+                }
+                if (statResult.BPSKprobVsSNR.timeSamples.size() != 0 && statResult.BPSKprobVsSNR.timeSamples.size() == statResult.BPSKprobVsSNR.valueSamples.size()) {
+                    auto dataSize = static_cast<int>(statResult.BPSKprobVsSNR.timeSamples.size());
+                    //ImPlot::SetNextLineStyle(ImVec4(1.0f, 0.0f, 0.0f, 1.0f), 1.5f);
+                    ImPlot::PlotLine("BPSK", &statResult.BPSKprobVsSNR.timeSamples[0], 
+                                    &statResult.BPSKprobVsSNR.valueSamples[0], dataSize);
+                }
+                if (statResult.MSKprobVsSNR.timeSamples.size() != 0 && statResult.MSKprobVsSNR.timeSamples.size() == statResult.MSKprobVsSNR.valueSamples.size()) {
+                    auto dataSize = static_cast<int>(statResult.MSKprobVsSNR.timeSamples.size());
+                    //ImPlot::SetNextLineStyle(ImVec4(1.0f, 0.0f, 0.0f, 1.0f), 1.5f);
+                    ImPlot::PlotLine("MSK", &statResult.MSKprobVsSNR.timeSamples[0], 
+                                    &statResult.MSKprobVsSNR.valueSamples[0], dataSize);
+                }
+                ImPlot::EndPlot();
+            }
             ImGui::End();
         }
 

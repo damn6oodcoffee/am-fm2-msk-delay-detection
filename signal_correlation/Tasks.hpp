@@ -39,6 +39,6 @@ StatResult statisticalExperiment(double amplitudeLow, double amplitudeHigh,
                                 UnitDSP::Hertz sampleRate, size_t bitCount, double bitRate,
                                 UnitDSP::Hertz carrier, UnitDSP::Seconds delay, 
                                 UnitDSP::dB snrLow, UnitDSP::dB snrHigh, int snrStepCount,
-                                int repsPerSNR, float& statProgress);
+                                int repsPerSNR, float* statProgress);
 
 #endif 
