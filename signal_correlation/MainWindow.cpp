@@ -38,7 +38,7 @@ int main() {
         return -1;
     }
 
-     // Setup Dear ImGui context
+    // Setup Dear ImGui context
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
     ImPlot::CreateContext();
@@ -66,7 +66,7 @@ int main() {
     std::cout << "font path: " << fontPath << std::endl;
     // Load font
     io.Fonts->AddFontFromFileTTF(
-        fontPath.string().c_str(), 
+        fontPath.string().c_str(),
         18
     );
 #endif
@@ -92,6 +92,7 @@ int main() {
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
 
+#if 0
         // 1. Show the big demo window (Most of the sample code is in ImGui::ShowDemoWindow()! You can browse its code to learn more about Dear ImGui!).
         if (show_demo_window && false)
             ImGui::ShowDemoWindow(&show_demo_window);
@@ -126,67 +127,96 @@ int main() {
                 show_another_window = false;
             ImGui::End();
         }
-
+#endif
         // 4. Control window
-        {
-            ImGui::Begin("Control Window");
 
-            ImGui::SeparatorText("General");
-            ImGui::PushItemWidth(150.0);
-            // Sample Rate Input
-            constexpr int bufsize{32};
-            static char sampleRateBuf[bufsize] = "0.5";
-            static double sampleRate{};
-            ImGui::InputText("Sample Rate(kHz)", sampleRateBuf, bufsize, ImGuiInputTextFlags_CharsDecimal | ImGuiInputTextFlags_CharsNoBlank);
-            // Bit Count Input
-            static char bitCountBuf[bufsize] = "40";
-            static int bitCount{};
-            ImGui::InputText("Bit Count", bitCountBuf, bufsize, ImGuiInputTextFlags_CharsDecimal | ImGuiInputTextFlags_CharsNoBlank);
-            // Bit Rate Input
-            static char bitRateBuf[bufsize] = "20";
-            static double bitRate{}; 
-            ImGui::InputText("Bit Rate", bitRateBuf, bufsize, ImGuiInputTextFlags_CharsDecimal | ImGuiInputTextFlags_CharsNoBlank);
-            // Carrier Input
-            static char carrierBuf[bufsize] = "0.05";
-            static double carrier{};
-            ImGui::InputText("Carrier(kHz)", carrierBuf, bufsize, ImGuiInputTextFlags_CharsDecimal | ImGuiInputTextFlags_CharsNoBlank);
-            // Delay Input
-            static char delayBuf[bufsize] = "2130";
-            static double delay{};
-            ImGui::InputText("Delay(ms)", delayBuf, bufsize, ImGuiInputTextFlags_CharsDecimal | ImGuiInputTextFlags_CharsNoBlank);
-            // SNR Input
-            static char snrBuf[bufsize] = "0";
-            static double snr{};
-            ImGui::InputText("SNR(dB)", snrBuf, bufsize, ImGuiInputTextFlags_CharsDecimal | ImGuiInputTextFlags_CharsNoBlank);
-            
-            // Statistics Input
-            static char snrStepCountBuf[bufsize] = "20";
-            static int snrStepCount{}; 
-            static char snrLowBuf[bufsize] = "-10.0";
-            static double snrLow{};
-            static char snrHighBuf[bufsize] = "10.0";
-            static double snrHigh{};
-            static char repsPerSNRBuf[bufsize] = "100";
-            static int repsPerSNR{};
-           
+        ImGui::Begin("Control Window");
 
-            ImGui::SeparatorText("Modulation");
-            static int modulationType{0};
-            ImGui::RadioButton("ASK", &modulationType, 0); ImGui::SameLine();
-            ImGui::RadioButton("BPSK", &modulationType, 1); ImGui::SameLine();
-            ImGui::RadioButton("MSK", &modulationType, 2);
-            static double lowAmp{};
-            static char lowAmpBuf[bufsize] = "0.0";
-            static double highAmp{};
-            static char highAmpBuf[bufsize] = "1.0";
-            if (modulationType == 0) {
-                ImGui::InputText("Low Amplitude", lowAmpBuf, bufsize, ImGuiInputTextFlags_CharsDecimal | ImGuiInputTextFlags_CharsNoBlank);
+        ImGui::SeparatorText("General");
+        ImGui::PushItemWidth(150.0);
+        // Sample Rate Input
+        constexpr int bufsize{ 32 };
+        static char sampleRateBuf[bufsize] = "0.5";
+        static double sampleRate{};
+        ImGui::InputText("Sample Rate(kHz)", sampleRateBuf, bufsize, ImGuiInputTextFlags_CharsDecimal | ImGuiInputTextFlags_CharsNoBlank);
+        // Bit Count Input
+        static char bitCountBuf[bufsize] = "40";
+        static int bitCount{};
+        ImGui::InputText("Bit Count", bitCountBuf, bufsize, ImGuiInputTextFlags_CharsDecimal | ImGuiInputTextFlags_CharsNoBlank);
+        // Bit Rate Input
+        static char bitRateBuf[bufsize] = "20";
+        static double bitRate{};
+        ImGui::InputText("Bit Rate", bitRateBuf, bufsize, ImGuiInputTextFlags_CharsDecimal | ImGuiInputTextFlags_CharsNoBlank);
+        // Carrier Input
+        static char carrierBuf[bufsize] = "0.05";
+        static double carrier{};
+        ImGui::InputText("Carrier(kHz)", carrierBuf, bufsize, ImGuiInputTextFlags_CharsDecimal | ImGuiInputTextFlags_CharsNoBlank);
+        // Delay Input
+        static char delayBuf[bufsize] = "2130";
+        static double delay{};
+        ImGui::InputText("Delay(ms)", delayBuf, bufsize, ImGuiInputTextFlags_CharsDecimal | ImGuiInputTextFlags_CharsNoBlank);
+        // SNR Input
+        static char snrBuf[bufsize] = "0";
+        static double snr{};
+        ImGui::InputText("SNR(dB)", snrBuf, bufsize, ImGuiInputTextFlags_CharsDecimal | ImGuiInputTextFlags_CharsNoBlank);
 
-                ImGui::InputText("High Amplitude", highAmpBuf, bufsize, ImGuiInputTextFlags_CharsDecimal | ImGuiInputTextFlags_CharsNoBlank);
-            }
+        // Statistics Input
+        static char snrStepCountBuf[bufsize] = "20";
+        static int snrStepCount{};
+        static char snrLowBuf[bufsize] = "-10.0";
+        static double snrLow{};
+        static char snrHighBuf[bufsize] = "10.0";
+        static double snrHigh{};
+        static char repsPerSNRBuf[bufsize] = "100";
+        static int repsPerSNR{};
 
-            ImGui::SeparatorText("");
-            if (ImGui::Button("Generate")) {
+
+        ImGui::SeparatorText("Modulation");
+        static int modulationType{ 0 };
+        ImGui::RadioButton("ASK", &modulationType, 0); ImGui::SameLine();
+        ImGui::RadioButton("BPSK", &modulationType, 1); ImGui::SameLine();
+        ImGui::RadioButton("MSK", &modulationType, 2);
+        static double lowAmp{};
+        static char lowAmpBuf[bufsize] = "0.0";
+        static double highAmp{};
+        static char highAmpBuf[bufsize] = "1.0";
+        if (modulationType == 0) {
+            ImGui::InputText("Low Amplitude", lowAmpBuf, bufsize, ImGuiInputTextFlags_CharsDecimal | ImGuiInputTextFlags_CharsNoBlank);
+
+            ImGui::InputText("High Amplitude", highAmpBuf, bufsize, ImGuiInputTextFlags_CharsDecimal | ImGuiInputTextFlags_CharsNoBlank);
+        }
+
+        ImGui::SeparatorText("");
+        if (ImGui::Button("Generate")) {
+            sampleRate = 1e3 * std::atof(sampleRateBuf); // "1e3 * " - kHz to Hz
+            bitCount = std::atoi(bitCountBuf);
+            bitRate = std::atof(bitRateBuf);
+            carrier = 1e3 * std::atof(carrierBuf); // "1e3 * " - kHz to Hz
+            delay = 1e-3 * std::atof(delayBuf); // "1e-3 * " - msec to sec
+            snr = std::atof(snrBuf);
+            lowAmp = std::atof(lowAmpBuf);
+            highAmp = std::atof(highAmpBuf);
+            if (modulationType == 0)
+                expResult = singleExperimentASK(lowAmp, highAmp, sampleRate, bitCount, bitRate, carrier, delay, snr);
+            if (modulationType == 1)
+                expResult = singleExperimentBPSK(sampleRate, bitCount, bitRate, carrier, delay, snr);
+            if (modulationType == 2)
+                expResult = singleExperimentMSK(sampleRate, bitCount, bitRate, carrier, 0.0, delay, snr);
+        }
+        ImGui::SameLine();
+        static char delayEstimateBuf[bufsize];
+        if (std::snprintf(delayEstimateBuf, bufsize, "%f", 1e3 * expResult.estimatedDelay) > 0)
+            ImGui::InputText("Delay Estimate", delayEstimateBuf, bufsize, ImGuiInputTextFlags_ReadOnly);
+
+        if (ImGui::CollapsingHeader("Stats", ImGuiTreeNodeFlags_None)) {
+            ImGui::InputText("SNR Low(dB)", snrLowBuf, bufsize, ImGuiInputTextFlags_CharsDecimal | ImGuiInputTextFlags_CharsNoBlank);
+            ImGui::InputText("SNR High(dB)", snrHighBuf, bufsize, ImGuiInputTextFlags_CharsDecimal | ImGuiInputTextFlags_CharsNoBlank);
+            ImGui::InputText("SNR Step Count", snrStepCountBuf, bufsize, ImGuiInputTextFlags_CharsDecimal | ImGuiInputTextFlags_CharsNoBlank);
+            ImGui::InputText("Repetitions Per SNR", repsPerSNRBuf, bufsize, ImGuiInputTextFlags_CharsDecimal | ImGuiInputTextFlags_CharsNoBlank);
+
+            ImGui::BeginDisabled(isStatExperimentInProcess);
+            if (ImGui::Button("Get Stats")) {
+                // Compute Statistics
                 sampleRate = 1e3 * std::atof(sampleRateBuf); // "1e3 * " - kHz to Hz
                 bitCount = std::atoi(bitCountBuf);
                 bitRate = std::atof(bitRateBuf);
@@ -195,55 +225,22 @@ int main() {
                 snr = std::atof(snrBuf);
                 lowAmp = std::atof(lowAmpBuf);
                 highAmp = std::atof(highAmpBuf);
-                if (modulationType == 0)
-                    expResult = singleExperimentASK(lowAmp, highAmp, sampleRate, bitCount, bitRate, carrier, delay, snr);
-                if (modulationType == 1)
-                    expResult = singleExperimentBPSK(sampleRate, bitCount, bitRate, carrier, delay, snr);
-                if (modulationType == 2)
-                    expResult = singleExperimentMSK(sampleRate, bitCount, bitRate, carrier, 0.0, delay, snr);
+                snrLow = std::atof(snrLowBuf);
+                snrHigh = std::atof(snrHighBuf);
+                snrStepCount = std::atoi(snrStepCountBuf);
+                repsPerSNR = std::atoi(repsPerSNRBuf);
+                statResultFuture = std::async(std::launch::async, statisticalExperiment,
+                    lowAmp, highAmp, sampleRate, bitCount, bitRate,
+                    carrier, delay, snrLow, snrHigh, snrStepCount,
+                    repsPerSNR, &statProgress);
+                isStatExperimentInProcess = true;
             }
-            ImGui::SameLine();
-            static char delayEstimateBuf[bufsize];
-            if (std::snprintf(delayEstimateBuf, bufsize, "%f", expResult.estimatedDelay) > 0)
-                ImGui::InputText("Delay Estimate", delayEstimateBuf, bufsize, ImGuiInputTextFlags_ReadOnly);
-            
-            if (ImGui::CollapsingHeader("Stats", ImGuiTreeNodeFlags_None)) {
-                ImGui::InputText("SNR Low(dB)", snrLowBuf, bufsize, ImGuiInputTextFlags_CharsDecimal | ImGuiInputTextFlags_CharsNoBlank);
-                ImGui::InputText("SNR High(dB)", snrHighBuf, bufsize, ImGuiInputTextFlags_CharsDecimal | ImGuiInputTextFlags_CharsNoBlank);
-                ImGui::InputText("SNR Step Count", snrStepCountBuf, bufsize, ImGuiInputTextFlags_CharsDecimal | ImGuiInputTextFlags_CharsNoBlank);
-                ImGui::InputText("Repetitions Per SNR", repsPerSNRBuf, bufsize, ImGuiInputTextFlags_CharsDecimal | ImGuiInputTextFlags_CharsNoBlank);
-
-                ImGui::BeginDisabled(isStatExperimentInProcess);
-                if (ImGui::Button("Get Stats")) {
-                    // Compute Statistics
-                    sampleRate = 1e3 * std::atof(sampleRateBuf); // "1e3 * " - kHz to Hz
-                    bitCount = std::atoi(bitCountBuf);
-                    bitRate = std::atof(bitRateBuf);
-                    carrier = 1e3 * std::atof(carrierBuf); // "1e3 * " - kHz to Hz
-                    delay = 1e-3 * std::atof(delayBuf); // "1e-3 * " - msec to sec
-                    snr = std::atof(snrBuf);
-                    lowAmp = std::atof(lowAmpBuf);
-                    highAmp = std::atof(highAmpBuf);
-                    snrLow = std::atof(snrLowBuf);
-                    snrHigh = std::atof(snrHighBuf);
-                    snrStepCount = std::atoi(snrStepCountBuf);
-                    repsPerSNR = std::atoi(repsPerSNRBuf);
-                    statResultFuture = std::async(std::launch::async, statisticalExperiment, 
-                                            lowAmp, highAmp, sampleRate, bitCount, bitRate, 
-                                            carrier, delay, snrLow, snrHigh, snrStepCount, 
-                                            repsPerSNR, &statProgress);
-                    isStatExperimentInProcess = true;
-                }
-                ImGui::EndDisabled();
-
-                
-                ImGui::ProgressBar(statProgress, ImVec2(-1.0, 0.0));
-
-            }
-
+            ImGui::EndDisabled();
+            ImGui::ProgressBar(statProgress, ImVec2(-1.0, 0.0));
             ImGui::PopItemWidth();
-            ImGui::End();
         }
+
+        ImGui::End();
 
         // 5. ImPlot window for signals.
         {
@@ -253,8 +250,15 @@ int main() {
                 if (expResult.refSignal.timeSamples.size() != 0 && expResult.refSignal.timeSamples.size() == expResult.refSignal.valueSamples.size()) {
                     auto dataSize = static_cast<int>(expResult.refSignal.timeSamples.size());
                     //ImPlot::SetNextLineStyle(ImVec4(1.0f, 0.0f, 0.0f, 1.0f), 1.5f);
-                    ImPlot::PlotLine("Reference Signal", &expResult.refSignal.timeSamples[0], 
-                                    &expResult.refSignal.valueSamples[0], dataSize);
+                    ImPlot::PlotLine("Reference Signal", &expResult.refSignal.timeSamples[0],
+                        &expResult.refSignal.valueSamples[0], dataSize);
+                }
+                if (expResult.bitSamples.timeSamples.size() != 0 && expResult.bitSamples.timeSamples.size() == expResult.bitSamples.valueSamples.size()) {
+                    auto dataSize = static_cast<int>(expResult.bitSamples.timeSamples.size());
+                    ImPlot::PushStyleVar(ImPlotStyleVar_FillAlpha, 0.25f);
+                    ImPlot::PlotShaded("Bits", &expResult.bitSamples.timeSamples[0], &expResult.bitSamples.valueSamples[0], dataSize, 0.0);
+                    ImPlot::PlotLine("Bits", &expResult.bitSamples.timeSamples[0], &expResult.bitSamples.valueSamples[0], dataSize, 0.0);
+                    ImPlot::PopStyleVar();
                 }
                 ImPlot::EndPlot();
             }
@@ -262,13 +266,20 @@ int main() {
                 if (expResult.delayedSignal.timeSamples.size() != 0 && expResult.delayedSignal.timeSamples.size() == expResult.delayedSignal.valueSamples.size()) {
                     auto dataSize = static_cast<int>(expResult.delayedSignal.timeSamples.size());
                     //ImPlot::SetNextLineStyle(ImVec4(1.0f, 0.0f, 0.0f, 1.0f), 1.5f);
-                    ImPlot::PlotLine("Delayed Signal", &expResult.delayedSignal.timeSamples[0], 
-                                    &expResult.delayedSignal.valueSamples[0], dataSize);
-                    double region[2] = {expResult.refSignal.timeSamples.front(), expResult.refSignal.timeSamples.back()};
+                    ImPlot::PlotLine("Delayed Signal", &expResult.delayedSignal.timeSamples[0],
+                        &expResult.delayedSignal.valueSamples[0], dataSize);
+                    double region[2] = { expResult.refSignal.timeSamples.front(), expResult.refSignal.timeSamples.back() };
                     ImPlot::SetNextLineStyle(ImVec4(1.0f, 0.0f, 0.0f, 1.0f), 1.5f);
                     ImPlot::PlotInfLines("Ref Signal Region", region, 2);
                     ImPlot::TagX(region[0], ImVec4(1.0, 0.0, 0.0, 1.0));
                     ImPlot::TagX(region[1], ImVec4(1.0, 0.0, 0.0, 1.0));
+                }
+                if (expResult.bitSamples.timeSamples.size() != 0 && expResult.bitSamples.timeSamples.size() == expResult.bitSamples.valueSamples.size()) {
+                    auto dataSize = static_cast<int>(expResult.bitSamples.timeSamples.size());
+                    ImPlot::PushStyleVar(ImPlotStyleVar_FillAlpha, 0.25f);
+                    ImPlot::PlotShaded("Bits", &expResult.bitSamples.timeSamples[0], &expResult.bitSamples.valueSamples[0], dataSize, 0.0);
+                    ImPlot::PlotLine("Bits", &expResult.bitSamples.timeSamples[0], &expResult.bitSamples.valueSamples[0], dataSize, 0.0);
+                    ImPlot::PopStyleVar();
                 }
                 ImPlot::EndPlot();
             }
@@ -276,8 +287,17 @@ int main() {
                 if (expResult.crossCorrelation.timeSamples.size() != 0 && expResult.crossCorrelation.timeSamples.size() == expResult.crossCorrelation.valueSamples.size()) {
                     auto dataSize = static_cast<int>(expResult.crossCorrelation.timeSamples.size());
                     //ImPlot::SetNextLineStyle(ImVec4(1.0f, 0.0f, 0.0f, 1.0f), 1.5f);
-                    ImPlot::PlotLine("Cross-correlation", &expResult.crossCorrelation.timeSamples[0], 
-                                    &expResult.crossCorrelation.valueSamples[0], dataSize);
+                    ImPlot::PlotLine("Cross-correlation", &expResult.crossCorrelation.timeSamples[0],
+                        &expResult.crossCorrelation.valueSamples[0], dataSize);
+
+                    ImPlot::SetNextLineStyle(ImVec4(1.0f, 0.0f, 0.0f, 1.0f), 1.5f);
+                    ImPlot::TagX(expResult.estimatedDelay, ImVec4(1.0, 0.0, 0.0, 1.0));
+                    ImPlot::PlotInfLines("Estimated Delay", &expResult.estimatedDelay, 1);
+
+                    ImPlot::SetNextLineStyle(ImVec4(0.0f, 1.0f, 0.0f, 1.0f), 1.5f);
+                    ImPlot::TagX(delay, ImVec4(0.0, 1.0, 0.0, 1.0));
+                    ImPlot::PlotInfLines("True Delay", &delay, 1);
+
                 }
                 ImPlot::EndPlot();
             }
@@ -304,27 +324,27 @@ int main() {
                 if (statResult.ASKprobVsSNR.timeSamples.size() != 0 && statResult.ASKprobVsSNR.timeSamples.size() == statResult.ASKprobVsSNR.valueSamples.size()) {
                     auto dataSize = static_cast<int>(statResult.ASKprobVsSNR.timeSamples.size());
                     //ImPlot::SetNextLineStyle(ImVec4(1.0f, 0.0f, 0.0f, 1.0f), 1.5f);
-                    ImPlot::PlotLine("ASK", &statResult.ASKprobVsSNR.timeSamples[0], 
-                                    &statResult.ASKprobVsSNR.valueSamples[0], dataSize);
+                    ImPlot::PlotLine("ASK", &statResult.ASKprobVsSNR.timeSamples[0],
+                        &statResult.ASKprobVsSNR.valueSamples[0], dataSize);
                 }
                 if (statResult.BPSKprobVsSNR.timeSamples.size() != 0 && statResult.BPSKprobVsSNR.timeSamples.size() == statResult.BPSKprobVsSNR.valueSamples.size()) {
                     auto dataSize = static_cast<int>(statResult.BPSKprobVsSNR.timeSamples.size());
                     //ImPlot::SetNextLineStyle(ImVec4(1.0f, 0.0f, 0.0f, 1.0f), 1.5f);
-                    ImPlot::PlotLine("BPSK", &statResult.BPSKprobVsSNR.timeSamples[0], 
-                                    &statResult.BPSKprobVsSNR.valueSamples[0], dataSize);
+                    ImPlot::PlotLine("BPSK", &statResult.BPSKprobVsSNR.timeSamples[0],
+                        &statResult.BPSKprobVsSNR.valueSamples[0], dataSize);
                 }
                 if (statResult.MSKprobVsSNR.timeSamples.size() != 0 && statResult.MSKprobVsSNR.timeSamples.size() == statResult.MSKprobVsSNR.valueSamples.size()) {
                     auto dataSize = static_cast<int>(statResult.MSKprobVsSNR.timeSamples.size());
                     //ImPlot::SetNextLineStyle(ImVec4(1.0f, 0.0f, 0.0f, 1.0f), 1.5f);
-                    ImPlot::PlotLine("MSK", &statResult.MSKprobVsSNR.timeSamples[0], 
-                                    &statResult.MSKprobVsSNR.valueSamples[0], dataSize);
+                    ImPlot::PlotLine("MSK", &statResult.MSKprobVsSNR.timeSamples[0],
+                        &statResult.MSKprobVsSNR.valueSamples[0], dataSize);
                 }
                 ImPlot::EndPlot();
             }
             ImGui::End();
         }
 
-        ImGui::ShowDemoWindow();
+        //ImGui::ShowDemoWindow();
         ImPlot::ShowDemoWindow();
 
         // Rendering

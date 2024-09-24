@@ -9,15 +9,15 @@ constexpr double m_pi = 3.14159265358979323846;
 template<typename U, typename V>
 struct SamplePoint {
     SamplePoint(U x, V y)
-        : x{x}
-        , y{y}
+        : x{ x }
+        , y{ y }
     {}
-    U x; 
+    U x;
     V y;
 };
 
 namespace UnitDSP {
-    using Hertz = double; 
+    using Hertz = double;
     using Radians = double;
     using Seconds = double;
     using dB = double;
@@ -28,16 +28,16 @@ template<typename TypeX, typename TypeY>
 struct Samples {
     Samples() {}
     Samples(std::vector<TypeX> timeSamples, std::vector<TypeY> valueSamples)
-        : timeSamples{timeSamples}
-        , valueSamples{valueSamples} 
+        : timeSamples{ timeSamples }
+        , valueSamples{ valueSamples }
     {}
-    Samples(const Samples& other) 
-        : timeSamples{other.timeSamples}
-        , valueSamples{other.valueSamples}
+    Samples(const Samples& other)
+        : timeSamples{ other.timeSamples }
+        , valueSamples{ other.valueSamples }
     {}
     Samples(Samples&& other) noexcept
-        : timeSamples{std::move(other.timeSamples)}
-        , valueSamples{std::move(other.valueSamples)}
+        : timeSamples{ std::move(other.timeSamples) }
+        , valueSamples{ std::move(other.valueSamples) }
     {}
 
     Samples& operator=(const Samples& other) {
@@ -97,6 +97,7 @@ public:
     void setBitRate(double bitRate);
     double getBitRate();
     void setBits(const std::vector<int>& bits);
+    const std::vector<int>& getBits();
     Samples<UnitDSP::Seconds, double> sample(size_t bitCount);
 
 protected:
@@ -111,9 +112,9 @@ private:
 class SineSignalASK : public SineSignalBitSampler {
 public:
     SineSignalASK(double lowAmplitude, double highAmplitude, UnitDSP::Hertz carrierFreq,
-                  UnitDSP::Hertz sampleRate, UnitDSP::Radians phase, double bitRate);
+        UnitDSP::Hertz sampleRate, UnitDSP::Radians phase, double bitRate);
     double sampleBit(int bit, UnitDSP::Seconds timePoint);
-    
+
 private:
     double lowAmp_;
     double highAmp_;
@@ -138,12 +139,11 @@ private:
 
 class DelayedSineSignalBitSampler {
 public:
-    DelayedSineSignalBitSampler() {};
+    DelayedSineSignalBitSampler() : delay_{}, duration_{} {};
     ~DelayedSineSignalBitSampler() {};
     void generate(SineSignalBitSampler& sampler, UnitDSP::Seconds delay, UnitDSP::Seconds duration);
     const Samples<double, double>& getReferenceSamples() const;
     const Samples<double, double>& getDelayedSamples() const;
-
 private:
     UnitDSP::Seconds delay_;
     UnitDSP::Seconds duration_;
@@ -151,12 +151,15 @@ private:
     Samples<UnitDSP::Seconds, double> delayedSignal;
     void generateDelayed(SineSignalBitSampler& sampler);
     void extractReference(SineSignalBitSampler& sampler);
+
 };
 
 
+Samples<UnitDSP::Seconds, double> getBitSamples(SineSignalBitSampler& sampler);
 
-Samples<int, double> computeCrossCorrelation(const std::vector<double>& sequenceA, 
-                                             const std::vector<double>& sequenceB);
+
+Samples<int, double> computeCrossCorrelation(const std::vector<double>& sequenceA,
+    const std::vector<double>& sequenceB);
 
 std::vector<int> generateRandomBits(size_t size);
 

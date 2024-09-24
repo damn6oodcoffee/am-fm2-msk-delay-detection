@@ -7,7 +7,7 @@ SignalModel::~SignalModel() {}
 
 
 SineSignalModel::SineSignalModel(UnitDSP::Hertz carrierFreq, UnitDSP::Hertz sampleRate, UnitDSP::Radians phase)
-    : phase{phase}
+    : phase{ phase }
 {
     setCarrierFrequency(carrierFreq);
     setSampleRate(sampleRate);
@@ -26,7 +26,7 @@ void SineSignalModel::setCarrierFrequency(UnitDSP::Hertz carrier) {
 }
 
 void SineSignalModel::setSampleRate(UnitDSP::Hertz sampleRate) {
-    if (sampleRate <= 0.0) 
+    if (sampleRate <= 0.0)
         throw std::runtime_error("invalid sample rate value");
     sampleRate_ = sampleRate;
 }
@@ -43,10 +43,10 @@ SineSignal::SineSignal(UnitDSP::Hertz carrierFreq, UnitDSP::Hertz sampleRate, Un
 
 Samples<UnitDSP::Seconds, double> SineSignal::sample(size_t sampleCount) {
     Samples<double, double> samples;
-    double dt{1 / getSampleRate()};
-    double carrier{getCarrierFrequency()};
+    double dt{ 1 / getSampleRate() };
+    double carrier{ getCarrierFrequency() };
     double time{}, amplitude{};
-    for (size_t i{0}; i < sampleCount; ++i) {
+    for (size_t i{ 0 }; i < sampleCount; ++i) {
         time = phase / (2 * m_pi * carrier);
         amplitude = 1.0 * sin(phase);
         samples.timeSamples.push_back(time);
@@ -76,7 +76,7 @@ Samples<UnitDSP::Seconds, double> SineSignal::sample(size_t sampleCount) {
 SineSignalBitSampler::SineSignalBitSampler(UnitDSP::Hertz carrierFreq, UnitDSP::Hertz sampleRate, UnitDSP::Radians phase, double bitRate)
     : SineSignalModel(carrierFreq, sampleRate, phase)
 {
-    setBitRate(bitRate);    
+    setBitRate(bitRate);
 }
 
 SineSignalBitSampler::~SineSignalBitSampler() {}
@@ -99,21 +99,20 @@ void SineSignalBitSampler::setBits(const std::vector<int>& bits) {
     bits_ = bits;
 }
 
+const std::vector<int>& SineSignalBitSampler::getBits() {
+    return bits_;
+}
+
 Samples<UnitDSP::Seconds, double> SineSignalBitSampler::sample(size_t bitCount) {
     Samples<double, double> samples;
-    UnitDSP::Seconds dt{1.0 / getSampleRate()};
-    UnitDSP::Seconds bitInterval{1.0 / bitRate_};
+    UnitDSP::Seconds dt{ 1.0 / getSampleRate() };
+    UnitDSP::Seconds bitInterval{ 1.0 / bitRate_ };
     UnitDSP::Seconds time{};
     double amplitude{};
-    size_t bitIndex{0};
+    size_t bitIndex{ 0 };
     size_t bitSequenceSize = bits_.size();
     while (bitIndex < bitCount) {
-        // time = phase_ / (2 * m_pi * carrierFreq_);
-        // amplitude = bits[bitIndex % bitSequenceSize] * sin(phase_);
-        // timeSamples_.push_back(time);
-        // amplitudeSamples_.push_back(amplitude);
-        // phase_ += 2 * m_pi * carrierFreq_ * dt;
-
+ 
         samples.timeSamples.push_back(time);
         samples.valueSamples.push_back(sampleBit(bits_[bitIndex % bitSequenceSize], time));
 
@@ -124,25 +123,13 @@ Samples<UnitDSP::Seconds, double> SineSignalBitSampler::sample(size_t bitCount) 
 }
 
 
-// const std::vector<double>& SineSignalBitSampler::getTimeSamples() const {
-//     return timeSamples_;
-// }
-
-// const std::vector<double>& SineSignalBitSampler::getAmplitudeSamples() const {
-//     return amplitudeSamples_;
-// }
-
-// void SineSignalBitSampler::clear() {
-//     timeSamples_.clear();
-//     amplitudeSamples_.clear();
-// }
 
 
 SineSignalASK::SineSignalASK(double lowAmplitude, double highAmplitude, UnitDSP::Hertz carrierFreq,
-                             UnitDSP::Hertz sampleRate, UnitDSP::Radians phase, double bitRate)
+    UnitDSP::Hertz sampleRate, UnitDSP::Radians phase, double bitRate)
     : SineSignalBitSampler(carrierFreq, sampleRate, phase, bitRate)
-    , lowAmp_{lowAmplitude}
-    , highAmp_{highAmplitude}
+    , lowAmp_{ lowAmplitude }
+    , highAmp_{ highAmplitude }
 {}
 
 double SineSignalASK::sampleBit(int bit, UnitDSP::Seconds timePoint) {
@@ -166,15 +153,16 @@ double SineSignalBPSK::sampleBit(int bit, UnitDSP::Seconds timePoint) {
 
 SineSignalMSK::SineSignalMSK(UnitDSP::Hertz carrierFreq, UnitDSP::Hertz sampleRate, UnitDSP::Radians phase, double bitRate)
     : SineSignalBitSampler(carrierFreq, sampleRate, phase, bitRate)
-    , frequencyDiff_{bitRate / 2.0}
+    , frequencyDiff_{ bitRate / 2.0 }
 {}
 
 double SineSignalMSK::sampleBit(int bit, UnitDSP::Seconds timePoint) {
-    UnitDSP::Seconds dt{1.0 / getSampleRate()};
+    UnitDSP::Seconds dt{ 1.0 / getSampleRate() };
     double amplitude{ sin(phase) };
     if (bit == 0) {
         phase += 2 * m_pi * getCarrierFrequency() * dt;
-    } else {
+    }
+    else {
         phase += 2 * m_pi * (getCarrierFrequency() + frequencyDiff_) * dt;
     }
     return amplitude;
@@ -182,9 +170,9 @@ double SineSignalMSK::sampleBit(int bit, UnitDSP::Seconds timePoint) {
 
 
 
-void DelayedSineSignalBitSampler::generate(SineSignalBitSampler& sampler, 
-                                           UnitDSP::Seconds delay, 
-                                           UnitDSP::Seconds duration)
+void DelayedSineSignalBitSampler::generate(SineSignalBitSampler& sampler,
+    UnitDSP::Seconds delay,
+    UnitDSP::Seconds duration)
 {
     if (delay < 0.0 || duration < 0.0)
         throw std::runtime_error("invalid parameters");
@@ -196,7 +184,7 @@ void DelayedSineSignalBitSampler::generate(SineSignalBitSampler& sampler,
 
 void DelayedSineSignalBitSampler::generateDelayed(SineSignalBitSampler& sampler) {
     UnitDSP::Seconds bitInterval{ 1.0 / sampler.getBitRate() };
-    size_t bitCount{ static_cast<size_t>(std::ceil((delay_ + duration_) / bitInterval)) };
+    size_t bitCount{ static_cast<size_t>(std::ceil(2 * (delay_ + duration_) / bitInterval)) };
     sampler.setBits(generateRandomBits(bitCount));
     delayedSignal = sampler.sample(bitCount);
 }
@@ -210,14 +198,14 @@ void DelayedSineSignalBitSampler::extractReference(SineSignalBitSampler& sampler
     auto endItVal = delayedSignal.valueSamples.begin();
     std::advance(begItVal, srcDelayInSamples);
     std::advance(endItVal, srcDelayInSamples + durationInSamples);
-    
+
     auto begItTime = delayedSignal.timeSamples.begin();
     auto endItTime = delayedSignal.timeSamples.begin();
     std::advance(begItTime, srcDelayInSamples);
     std::advance(endItTime, srcDelayInSamples + durationInSamples);
-    
-    refSignal = Samples<UnitDSP::Seconds, double>(std::vector<UnitDSP::Seconds>(begItTime, endItTime), 
-                                        std::vector<double>(begItVal, endItVal));
+
+    refSignal = Samples<UnitDSP::Seconds, double>(std::vector<UnitDSP::Seconds>(begItTime, endItTime),
+        std::vector<double>(begItVal, endItVal));
 
     assert(refSignal.valueSamples.size() == refSignal.timeSamples.size());
 }
@@ -225,151 +213,32 @@ void DelayedSineSignalBitSampler::extractReference(SineSignalBitSampler& sampler
 const Samples<UnitDSP::Seconds, double>& DelayedSineSignalBitSampler::getReferenceSamples() const {
     return refSignal;
 }
+
 const Samples<UnitDSP::Seconds, double>& DelayedSineSignalBitSampler::getDelayedSamples() const {
     return delayedSignal;
 }
 
 
-
-#if 0
-
-SineSignalASK::SineSignalASK(UnitDSP::Hertz carrierFreq, UnitDSP::Radians phase, UnitDSP::Hertz sampleRate,
-                             size_t bitRate)
-    : phase_{phase} 
-    , bitRate_{bitRate}
-{
-    setCarrierFrequency(carrierFreq);
-    setSampleRate(sampleRate);
-}
-
-void SineSignalASK::sample(size_t bitCount) {
-    double dt{1.0 / sampleRate_};
-    double bitInterval{1.0 / bitRate_};
-    double time{}, amplitude{};
-    size_t bitIndex{0};
-    size_t bitSequenceSize = bits.size();
-    while (bitIndex < bitCount) {
-        time = phase_ / (2 * m_pi * carrierFreq_);
-        amplitude = bits[bitIndex % bitSequenceSize] * sin(phase_);
-        timeSamples_.push_back(time);
-        amplitudeSamples_.push_back(amplitude);
-        phase_ += 2 * m_pi * carrierFreq_ * dt;
-        bitIndex = static_cast<int>(time / bitInterval);
+Samples<UnitDSP::Seconds, double> getBitSamples(SineSignalBitSampler& sampler) {
+    auto bits = sampler.getBits();
+    auto bitInterval = 1.0 / sampler.getBitRate();
+    Samples<double, double> bitSamples{};
+    for (size_t i{ 0 }; i < bits.size(); ++i) {
+        auto amp = bits[i] == 1 ? bits[i] : -1;
+        bitSamples.timeSamples.push_back(i * bitInterval);
+        bitSamples.valueSamples.push_back(0);
+        bitSamples.timeSamples.push_back(i * bitInterval);
+        bitSamples.valueSamples.push_back(amp);
+        bitSamples.timeSamples.push_back((i + 1) * bitInterval);
+        bitSamples.valueSamples.push_back(amp);
+        bitSamples.timeSamples.push_back((i + 1) * bitInterval);
+        bitSamples.valueSamples.push_back(0);
     }
-    return;
+    return bitSamples;
 }
 
-const std::vector<double>& SineSignalASK::getTimeSamples() const {
-    return timeSamples_;
-}
-
-const std::vector<double>& SineSignalASK::getAmplitudeSamples() const {
-    return amplitudeSamples_;
-}
-
-void SineSignalASK::clear() {
-    timeSamples_.clear();
-    amplitudeSamples_.clear();
-}
-
-void SineSignalASK::generateDelayed(SignalModel::Seconds delay, 
-                                    SignalModel::Seconds duration) 
-{
-    if (delay < 0.0 || duration < 0.0)
-        throw std::runtime_error("invalid parameters");
-
-    double bitInterval{ 1.0 / bitRate_ };
-    size_t bitCount{ static_cast<size_t>(std::ceil((delay + duration) / bitInterval)) };
-    clear();
-    bits = generateRandomBits(bitCount);
-    sample(bitCount);
-}
-
-SineSignalASK SineSignalASK::getReferenceSignal(SignalModel::Seconds delay,
-                                                SignalModel::Seconds duration)
-{
-    if (delay < 0.0 || duration < 0.0)
-        throw std::runtime_error("invalid parameters");
-
-    double dt{ 1.0 / getSampleRate() };
-    size_t srcDelayInSamples{ static_cast<size_t>(delay / dt) };
-    size_t durationInSamples{ static_cast<size_t>(duration / dt) };
-    auto begIt = amplitudeSamples_.begin();
-    auto endIt = amplitudeSamples_.begin();
-    std::advance(begIt, srcDelayInSamples);
-    std::advance(endIt, srcDelayInSamples + durationInSamples);
-    SineSignalASK refSignal(carrierFreq_, phase_, sampleRate_, bitRate_);
-    refSignal.amplitudeSamples_.assign(begIt, endIt);
-    begIt = timeSamples_.begin();
-    endIt = timeSamples_.begin();
-    std::advance(begIt, srcDelayInSamples);
-    std::advance(endIt, srcDelayInSamples + durationInSamples);
-    refSignal.timeSamples_.assign(begIt, endIt);
-
-    assert(refSignal.amplitudeSamples_.size() == refSignal.timeSamples_.size());
-    return refSignal;
-}
-
-#endif
-
-#if 0
-std::vector<double> getReferenceSignal(const SineSignalModel& srcSignal, 
-                                           SignalModel::Seconds srcDelay,
-                                           SignalModel::Seconds duration) 
-{
-    if (srcDelay < 0.0 || duration < 0.0)
-        throw std::runtime_error("invalid parameters");
-
-    double dt{ 1.0 / srcSignal.getSampleRate() };
-    size_t srcDelayInSamples{ static_cast<size_t>(srcDelay / dt) };
-    size_t durationInSamples{ static_cast<size_t>(duration / dt) };
-    auto begIt = srcSignal.getAmplitudeSamples().begin();
-    auto endIt = srcSignal.getAmplitudeSamples().begin();
-    std::advance(begIt, srcDelayInSamples);
-    std::advance(endIt, srcDelayInSamples + durationInSamples);
-    std::vector<double> refSignalAmplitudeSamples(begIt, endIt);
-    return refSignalAmplitudeSamples;
-}
-#endif
-
-
-#if 0
-std::vector<SamplePoint<int, double>> computeCrossCorrelation(const std::vector<double>& sequenceA, 
-                                                              const std::vector<double>& sequenceB) 
-{
-    if (sequenceA.size() < sequenceB.size()) {
-        auto result = computeCrossCorrelation(sequenceB, sequenceA);
-        // TODO:
-        // inverse delay points?
-        return result;
-    }
-    int posLagPointCount{ static_cast<int>(sequenceA.size()) };
-    int negLagPointCount{ static_cast<int>(sequenceB.size()) };
-    std::vector<SamplePoint<int, double>> crossCorrelation;
-    crossCorrelation.reserve(negLagPointCount + posLagPointCount);
-
-    // For negative lag values
-    for (int i{ -(negLagPointCount - 1) }; i < 0; ++i) {
-        double sum{ 0 };
-        for (int j{ 0 }; j <= negLagPointCount - abs(i) - 1; ++j) {
-            sum += sequenceA[j] * sequenceB[j + abs(i)];
-        }
-        crossCorrelation.emplace_back(i, sum);
-    }
-    // For positive lag values
-    for (int i{ 0 }; i <= posLagPointCount - 1; ++i) {
-        double sum{ 0 };
-        for (int j{ 0 }; j < negLagPointCount && j <= posLagPointCount - i - 1; ++j) {
-            sum += sequenceA[j + i] * sequenceB[j];
-        }
-        crossCorrelation.emplace_back(i, sum);
-    }
-    return crossCorrelation;
-}
-#else
-
-Samples<int, double> computeCrossCorrelation(const std::vector<double>& sequenceA, 
-                                             const std::vector<double>& sequenceB) 
+Samples<int, double> computeCrossCorrelation(const std::vector<double>& sequenceA,
+                                             const std::vector<double>& sequenceB)
 {
     if (sequenceA.size() < sequenceB.size()) {
         auto result = computeCrossCorrelation(sequenceB, sequenceA);
@@ -394,7 +263,6 @@ Samples<int, double> computeCrossCorrelation(const std::vector<double>& sequence
     return crossCorrelation;
 }
 
-#endif
 
 
 std::vector<int> generateRandomBits(size_t size) {
@@ -402,7 +270,7 @@ std::vector<int> generateRandomBits(size_t size) {
     std::uniform_int_distribution uniform_dist(0, 1);
     std::vector<int> bits;
     bits.reserve(size);
-    for (size_t i{0}; i < size; ++i) {
+    for (size_t i{ 0 }; i < size; ++i) {
         bits.push_back(uniform_dist(mt));
     }
     return bits;
@@ -412,23 +280,23 @@ std::vector<int> generateRandomBits(size_t size) {
 std::vector<double> addNoise(const std::vector<double>& amplitudes, UnitDSP::dB signalToNoiseRatio) {
     std::mt19937 mt{ std::random_device{}() };
     std::normal_distribution nd(0.0, 1.0);
-    
+
     auto size = amplitudes.size();
     std::vector<double> noiseSamples;
     noiseSamples.reserve(size);
-    double signalEnergy{0.0};   
-    double noiseEnergy{0.0};
+    double signalEnergy{ 0.0 };
+    double noiseEnergy{ 0.0 };
 
-    for (size_t i{0}; i < size; ++i) {
+    for (size_t i{ 0 }; i < size; ++i) {
         noiseSamples.push_back(nd(mt));
         noiseEnergy += noiseSamples[i] * noiseSamples[i];
         signalEnergy += amplitudes[i] * amplitudes[i];
     }
 
     double noiseSampleScaleFactor{ std::sqrt(signalEnergy / noiseEnergy * std::pow(10.0, -signalToNoiseRatio / 10.0)) };
-    
+
     std::vector<double> noisyAmplitudes = amplitudes;
-    for (size_t i{0}; i < size; ++i) {
+    for (size_t i{ 0 }; i < size; ++i) {
         noisyAmplitudes[i] += noiseSampleScaleFactor * noiseSamples[i];
     }
     return noisyAmplitudes;
