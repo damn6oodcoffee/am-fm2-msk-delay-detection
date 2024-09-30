@@ -144,7 +144,7 @@ int main() {
         static int bitCount{};
         ImGui::InputText("Bit Count", bitCountBuf, bufsize, ImGuiInputTextFlags_CharsDecimal | ImGuiInputTextFlags_CharsNoBlank);
         // Bit Rate Input
-        static char bitRateBuf[bufsize] = "20";
+        static char bitRateBuf[bufsize] = "80";
         static double bitRate{};
         ImGui::InputText("Bit Rate", bitRateBuf, bufsize, ImGuiInputTextFlags_CharsDecimal | ImGuiInputTextFlags_CharsNoBlank);
         // Carrier Input
@@ -167,7 +167,7 @@ int main() {
         static double snrLow{};
         static char snrHighBuf[bufsize] = "10.0";
         static double snrHigh{};
-        static char repsPerSNRBuf[bufsize] = "100";
+        static char repsPerSNRBuf[bufsize] = "1000";
         static int repsPerSNR{};
 
 
@@ -206,7 +206,7 @@ int main() {
         ImGui::SameLine();
         static char delayEstimateBuf[bufsize];
         if (std::snprintf(delayEstimateBuf, bufsize, "%f", 1e3 * expResult.estimatedDelay) > 0)
-            ImGui::InputText("Delay Estimate", delayEstimateBuf, bufsize, ImGuiInputTextFlags_ReadOnly);
+            ImGui::InputText("Delay Estimate (ms)", delayEstimateBuf, bufsize, ImGuiInputTextFlags_ReadOnly);
 
         if (ImGui::CollapsingHeader("Stats", ImGuiTreeNodeFlags_None)) {
             ImGui::InputText("SNR Low(dB)", snrLowBuf, bufsize, ImGuiInputTextFlags_CharsDecimal | ImGuiInputTextFlags_CharsNoBlank);
