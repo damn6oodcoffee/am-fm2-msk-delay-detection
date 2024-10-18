@@ -30,7 +30,10 @@
     <ClCompile Include="..\implot\implot.cpp" />
     <ClCompile Include="..\implot\implot_demo.cpp" />
     <ClCompile Include="..\implot\implot_items.cpp" />
+    <ClCompile Include="ComplexSignal.cpp" />
+    <ClCompile Include="GoldCode.cpp" />
     <ClCompile Include="MainWindow.cpp" />
+    <ClCompile Include="MainWindow2.cpp" />
     <ClCompile Include="SignalModel.cpp" />
     <ClCompile Include="Tasks.cpp" />
   </ItemGroup>
@@ -43,8 +46,11 @@
     <ClInclude Include="..\imgui\imstb_truetype.h" />
     <ClInclude Include="..\implot\implot.h" />
     <ClInclude Include="..\implot\implot_internal.h" />
+    <ClInclude Include="ComplexSignal.hpp" />
+    <ClInclude Include="GoldCode.hpp" />
     <ClInclude Include="SignalModel.hpp" />
     <ClInclude Include="Tasks.hpp" />
+    <ClInclude Include="Tasks2.hpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>17.0</VCProjectVersion>

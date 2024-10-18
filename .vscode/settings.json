@@ -1,0 +1,17 @@
+{
+    "files.associations": {
+        "functional": "cpp",
+        "vector": "cpp",
+        "algorithm": "cpp",
+        "chrono": "cpp",
+        "iterator": "cpp",
+        "list": "cpp",
+        "filesystem": "cpp",
+        "format": "cpp",
+        "random": "cpp",
+        "xhash": "cpp",
+        "xlocale": "cpp",
+        "xmemory": "cpp",
+        "xutility": "cpp"
+    }
+}

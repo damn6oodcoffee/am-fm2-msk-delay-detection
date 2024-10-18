@@ -3,8 +3,6 @@
 #include <cassert>
 #include "SignalModel.hpp"
 
-SignalModel::~SignalModel() {}
-
 
 SineSignalModel::SineSignalModel(UnitDSP::Hertz carrierFreq, UnitDSP::Hertz sampleRate, UnitDSP::Radians phase)
     : phase{ phase }
@@ -104,7 +102,7 @@ const std::vector<int>& SineSignalBitSampler::getBits() {
 }
 
 Samples<UnitDSP::Seconds, double> SineSignalBitSampler::sample(size_t bitCount) {
-    Samples<double, double> samples;
+    Samples<UnitDSP::Seconds, double> samples;
     UnitDSP::Seconds dt{ 1.0 / getSampleRate() };
     UnitDSP::Seconds bitInterval{ 1.0 / bitRate_ };
     UnitDSP::Seconds time{};

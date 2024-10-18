@@ -58,14 +58,15 @@ struct Samples {
     std::vector<TypeY> valueSamples;
 };
 
+template<typename TypeX, typename TypeY>
 class SignalModel {
 public:
-    virtual Samples<double, double> sample(size_t count) = 0;
-    virtual ~SignalModel() = 0;
+    virtual Samples<TypeX, TypeY> sample(size_t count) = 0;
+    virtual ~SignalModel() = 0 {};
 };
 
 
-class SineSignalModel : public SignalModel {
+class SineSignalModel : public SignalModel<UnitDSP::Seconds, double> {
 public:
     SineSignalModel(UnitDSP::Hertz carrierFreq, UnitDSP::Hertz sampleRate, UnitDSP::Radians phase);
     virtual UnitDSP::Hertz getCarrierFrequency() const;
