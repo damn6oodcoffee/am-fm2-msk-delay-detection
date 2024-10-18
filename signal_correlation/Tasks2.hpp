@@ -4,17 +4,86 @@
 #include "ComplexSignal.hpp"
 #include "GoldCode.hpp"
 
-struct ExperimentResult {
-	Samples<UnitDSP::Seconds, double> I;
-	Samples<UnitDSP::Seconds, double> Q;
-	Samples<UnitDSP::Seconds, double> filterConv1;
-	Samples<UnitDSP::Seconds, double> filterConv2;
-	Samples<UnitDSP::Seconds, double> filterConv3;
-	Samples<UnitDSP::Seconds, double> filterConv4;
+
+class QPSKGoldCodeExperiment {
+public:
+	static constexpr size_t filterCount{ 4 };
+	struct ExperimentResult {
+		Samples<UnitDSP::Seconds, double> I;
+		Samples<UnitDSP::Seconds, double> Q;
+		Samples<UnitDSP::Seconds, double> filterConv[filterCount];
+	};
+
+	struct StatResult {};
+
+	QPSKGoldCodeExperiment(UnitDSP::Hertz sampleRate, double bitRate)
+		: goldCodeTransformer_(2)
+		, qpskSampler_(sampleRate, 0.0, bitRate)
+	{}
+
+	ExperimentResult doExperiment(size_t bitCount, UnitDSP::dB SNR)
+	{
+		auto bits = generateRandomBits(bitCount);
+		auto goldCodeBits = transformBitsToGoldCode(goldCodeTransformer_, bits);
+		qpskSampler_.setBits(goldCodeBits);
+		samplesIQ_ = qpskSampler_.sample();
+		samplesIQ_.valueSamples = addComplexNoise(samplesIQ_.valueSamples, SNR);
+		computeGoldCodeMatchedFilters();
+		computeMatchedFilterConvolutions();
+		populateIQComponents();
+		return result_;
+	}
+
+	
+private:
+	GoldCodeBitStreamTransformer goldCodeTransformer_;
+	ComplexSignalQPSKSampler qpskSampler_;
+	ComplexSignalQPSKSampler::IQSamples samplesIQ_;
+	std::vector<ComplexSignalQPSKSampler::IQ> filterIQ_[filterCount];
+	ExperimentResult result_;
+
+	void computeGoldCodeMatchedFilters() {
+		for (int i{ 0 }; i < filterCount; ++i) {
+			std::vector<int> bitPair{ i & 1, i & (1 << 1) };
+			qpskSampler_.setBits(goldCodeTransformer_.getGoldCode(bitPair));
+			filterIQ_[i] = getMatchedFilter(qpskSampler_.sample().valueSamples);
+		}
+	}
+	
+	void computeMatchedFilterConvolutions() {
+		double dt = 1.0 / qpskSampler_.getSampleRate();
+		for (size_t i{ 0 }; i < filterCount; ++i) {
+			auto filterCorrTemp = computeComplexConvolution(samplesIQ_.valueSamples, filterIQ_[i]);
+			for (size_t j{ 0 }; j < filterCorrTemp.timeSamples.size(); ++j) {
+				result_.filterConv[i].timeSamples.push_back(static_cast<double>(filterCorrTemp.timeSamples[j]) * dt);
+				result_.filterConv[i].valueSamples.push_back(std::abs(filterCorrTemp.valueSamples[j]));
+			}
+		}
+	}
+
+	void populateIQComponents() {
+		result_.I.timeSamples = samplesIQ_.timeSamples;
+		std::transform(
+			samplesIQ_.valueSamples.begin(),
+			samplesIQ_.valueSamples.end(),
+			std::back_inserter(result_.I.valueSamples),
+			[](auto& elt) {
+				return elt.real();
+			}
+		);
+		result_.Q.timeSamples = samplesIQ_.timeSamples;
+		std::transform(
+			samplesIQ_.valueSamples.begin(),
+			samplesIQ_.valueSamples.end(),
+			std::back_inserter(result_.Q.valueSamples),
+			[](auto& elt) {
+				return elt.imag();
+			}
+		);
+	}
 };
 
-struct StatResult {};
-
+#if 0
 ExperimentResult singleGoldCodeExperiment(UnitDSP::Hertz sampleRate, 
 										  size_t bitCount, 
 									      double bitRate, 
@@ -80,5 +149,6 @@ ExperimentResult singleGoldCodeExperiment(UnitDSP::Hertz sampleRate,
 	}
 	return result;
 }
+#endif
 
 #endif

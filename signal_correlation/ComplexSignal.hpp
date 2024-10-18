@@ -3,6 +3,7 @@
 
 #include <algorithm>
 #include <complex>
+#include <random>
 #include "SignalModel.hpp"
 
 class ComplexSignal : public SignalModel<double, std::complex<double>> {
@@ -19,17 +20,18 @@ private:
 	UnitDSP::Hertz sampleRate;
 };
 
-class ComplexSignalQPSKSampler : ComplexSignal {
+class ComplexSignalQPSKSampler : public ComplexSignal {
 public:
 	using IQ = std::complex<double>;	// I component - real, Q component - imaginary
+	using IQSamples = Samples<UnitDSP::Seconds, IQ>;
 	using SymbolBits = std::pair<int, int>;
 	ComplexSignalQPSKSampler(UnitDSP::Hertz sampleRate, UnitDSP::Radians phase, double bitRate)
 		: ComplexSignal(sampleRate, phase)
 		, bitRate_{ bitRate }
 	{}
 	
-	Samples<UnitDSP::Seconds, IQ> sample(size_t symbolCount) {
-		Samples<UnitDSP::Seconds, IQ> samples;
+	IQSamples sample(size_t symbolCount) {
+		IQSamples samples;
 		
 		UnitDSP::Seconds dt{ 1.0 / getSampleRate() };
 		UnitDSP::Seconds symbolInterval{ 2.0 * 1.0 / bitRate_ };
@@ -48,7 +50,7 @@ public:
 		return samples;
 	}
 	
-	Samples<UnitDSP::Seconds, IQ> sample() { return sample(bits_.size() / 2); }
+	IQSamples sample() { return sample(bits_.size() / 2); }
 
 	IQ sampleSymbol(const SymbolBits& bits) {
 		if (bits.first == 0 && bits.second == 0)
@@ -103,6 +105,35 @@ std::vector<std::complex<double>> getMatchedFilter(const std::vector<std::comple
 		}
 	);
 	return filterSamples;
+}
+
+std::vector<std::complex<double>> addComplexNoise(const std::vector<std::complex<double>>& amplitudes, UnitDSP::dB signalToNoiseRatio) {
+    std::mt19937 mt{ std::random_device{}() };
+    std::normal_distribution nd(0.0, 1.0);
+
+    auto size = amplitudes.size();
+    std::vector<std::complex<double>> noiseSamples;
+    noiseSamples.reserve(size);
+    double signalEnergy{ 0.0 };
+    double noiseEnergy{ 0.0 };
+	
+	auto squareComplex = [](const std::complex<double>& val) {
+		return val.real() * val.real() + val.imag() * val.imag();
+	};
+
+	for (size_t i{ 0 }; i < size; ++i) {
+		noiseSamples.push_back({ nd(mt), nd(mt) });
+		noiseEnergy += squareComplex(noiseSamples[i]);
+        signalEnergy += squareComplex(amplitudes[i]);
+    }
+
+    double noiseSampleScaleFactor{ std::sqrt(signalEnergy / noiseEnergy * std::pow(10.0, -signalToNoiseRatio / 10.0)) };
+
+    std::vector<std::complex<double>> noisyAmplitudes = amplitudes;
+    for (size_t i{ 0 }; i < size; ++i) {
+        noisyAmplitudes[i] += noiseSampleScaleFactor * noiseSamples[i];
+    }
+    return noisyAmplitudes;
 }
 
 #endif

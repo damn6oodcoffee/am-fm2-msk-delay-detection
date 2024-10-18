@@ -4,6 +4,7 @@
 #include <future>
 #include <vector>
 #include <filesystem>
+#include <cstdio>
 #include <glad/glad.h>
 #include <GLFW/glfw3.h> // Will drag system OpenGL headers
 #include "imgui.h"
@@ -72,13 +73,16 @@ int main() {
     );
 #endif
 
-
+#if 0
     ExperimentResult expResult{};
     
     std::future<StatResult> statResultFuture;
     StatResult statResult{};
     float statProgress{ -1.0 };
     bool isStatExperimentInProcess{ false };
+#endif
+    
+	QPSKGoldCodeExperiment::ExperimentResult expResult;
 
     while (!glfwWindowShouldClose(window)) {
         glfwPollEvents();
@@ -168,7 +172,8 @@ int main() {
             bitCount = std::atoi(bitCountBuf);
             bitRate = std::atof(bitRateBuf);
             snr = std::atof(snrBuf);
-            expResult = singleGoldCodeExperiment(sampleRate, bitCount, bitRate, snr);
+            QPSKGoldCodeExperiment gcExp(sampleRate, bitRate);
+            expResult = gcExp.doExperiment(bitCount, snr);
         }
 #if 0
         if (ImGui::CollapsingHeader("Stats", ImGuiTreeNodeFlags_None)) {
@@ -233,29 +238,16 @@ int main() {
                 ImPlot::EndPlot();
             }
             if (ImPlot::BeginPlot("Filter Output")) {
-                if (expResult.filterConv1.timeSamples.size() != 0 && expResult.filterConv1.timeSamples.size() == expResult.filterConv1.valueSamples.size()) {
-                    auto dataSize = static_cast<int>(expResult.filterConv1.timeSamples.size());
-                    //ImPlot::SetNextLineStyle(ImVec4(1.0f, 0.0f, 0.0f, 1.0f), 1.5f);
-                    ImPlot::PlotLine("Filter 1", &expResult.filterConv1.timeSamples[0],
-                        &expResult.filterConv1.valueSamples[0], dataSize);
-                }
-                if (expResult.filterConv2.timeSamples.size() != 0 && expResult.filterConv2.timeSamples.size() == expResult.filterConv2.valueSamples.size()) {
-                    auto dataSize = static_cast<int>(expResult.filterConv2.timeSamples.size());
-                    //ImPlot::SetNextLineStyle(ImVec4(1.0f, 0.0f, 0.0f, 1.0f), 1.5f);
-                    ImPlot::PlotLine("Filter 2", &expResult.filterConv2.timeSamples[0],
-                        &expResult.filterConv2.valueSamples[0], dataSize);
-                }
-                if (expResult.filterConv3.timeSamples.size() != 0 && expResult.filterConv3.timeSamples.size() == expResult.filterConv3.valueSamples.size()) {
-                    auto dataSize = static_cast<int>(expResult.filterConv3.timeSamples.size());
-                    //ImPlot::SetNextLineStyle(ImVec4(1.0f, 0.0f, 0.0f, 1.0f), 1.5f);
-                    ImPlot::PlotLine("Filter 3", &expResult.filterConv3.timeSamples[0],
-                        &expResult.filterConv3.valueSamples[0], dataSize);
-                }
-                if (expResult.filterConv4.timeSamples.size() != 0 && expResult.filterConv4.timeSamples.size() == expResult.filterConv4.valueSamples.size()) {
-                    auto dataSize = static_cast<int>(expResult.filterConv4.timeSamples.size());
-                    //ImPlot::SetNextLineStyle(ImVec4(1.0f, 0.0f, 0.0f, 1.0f), 1.5f);
-                    ImPlot::PlotLine("Filter 4", &expResult.filterConv4.timeSamples[0],
-                        &expResult.filterConv4.valueSamples[0], dataSize);
+                for (int i{ 0 }; i < QPSKGoldCodeExperiment::filterCount; ++i) {
+					if (expResult.filterConv[i].timeSamples.size() != 0 && 
+                        expResult.filterConv[i].timeSamples.size() == expResult.filterConv[i].valueSamples.size()) {
+						auto dataSize = static_cast<int>(expResult.filterConv[i].timeSamples.size());
+						//ImPlot::SetNextLineStyle(ImVec4(1.0f, 0.0f, 0.0f, 1.0f), 1.5f);
+                        char legendName[16];
+                        sprintf_s(legendName, 16, "Filter %d", i);
+						ImPlot::PlotLine(legendName, &expResult.filterConv[i].timeSamples[0],
+							&expResult.filterConv[i].valueSamples[0], dataSize);
+					}
                 }
                 ImPlot::EndPlot();
             }
@@ -263,6 +255,7 @@ int main() {
             ImGui::End();
         }
 
+#if 0
         // Check if stat result is ready
         {
             if (statResultFuture.valid()) {
@@ -274,7 +267,6 @@ int main() {
                 }
             }
         }
-#if 0
         // 6. ImPlot window for stat data
         {
             ImGui::Begin("Statistics");
