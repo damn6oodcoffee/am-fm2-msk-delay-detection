@@ -36,6 +36,7 @@
     <ClCompile Include="MainWindow2.cpp" />
     <ClCompile Include="SignalModel.cpp" />
     <ClCompile Include="Tasks.cpp" />
+    <ClCompile Include="Tasks2.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\imgui\imconfig.h" />

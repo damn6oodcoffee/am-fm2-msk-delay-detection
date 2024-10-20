@@ -83,6 +83,13 @@ int main() {
 #endif
     
 	QPSKGoldCodeExperiment::ExperimentResult expResult;
+    std::future<QPSKGoldCodeExperiment::ExperimentResult> expResultFuture;
+    bool isSingleExperimentInProgress{ false };
+
+    Samples<UnitDSP::dB, double> statResult;
+    std::future<Samples<UnitDSP::dB, double>> statResultFuture;
+    float statProgress{ -1.0 };
+    bool isStatExperimentInProgress{ false };
 
     while (!glfwWindowShouldClose(window)) {
         glfwPollEvents();
@@ -166,7 +173,11 @@ int main() {
         static char repsPerSNRBuf[bufsize] = "1000";
         static int repsPerSNR{};
 
+        static std::string sentBits;
+        static std::string receivedBits;
+
         ImGui::SeparatorText("");
+        ImGui::BeginDisabled(isSingleExperimentInProgress);
         if (ImGui::Button("Generate")) {
             sampleRate = 1e3 * std::atof(sampleRateBuf); // "1e3 * " - kHz to Hz
             bitCount = std::atoi(bitCountBuf);
@@ -174,15 +185,32 @@ int main() {
             snr = std::atof(snrBuf);
             QPSKGoldCodeExperiment gcExp(sampleRate, bitRate);
             expResult = gcExp.doExperiment(bitCount, snr);
+            sentBits.clear();
+            receivedBits.clear();
+            for (char c : expResult.sentBits)
+                sentBits += c;
+            for (char c : expResult.receivedBits)
+                receivedBits += c;
+            
         }
-#if 0
+        ImGui::EndDisabled();
+        
+        ImGui::SeparatorText("Sent Bits");
+        ImGui::TextWrapped(sentBits.c_str());
+        ImGui::SeparatorText("Received Bits");
+        ImGui::TextWrapped(receivedBits.c_str());
+        ImGui::SeparatorText("Error Probability");
+        static char errorProb[bufsize];
+        if (std::snprintf(errorProb, bufsize, "%f", expResult.errorProb) > 0)
+            ImGui::InputText("Error Prob", errorProb, bufsize, ImGuiInputTextFlags_ReadOnly);
+#if 1 
         if (ImGui::CollapsingHeader("Stats", ImGuiTreeNodeFlags_None)) {
             ImGui::InputText("SNR Low(dB)", snrLowBuf, bufsize, ImGuiInputTextFlags_CharsDecimal | ImGuiInputTextFlags_CharsNoBlank);
             ImGui::InputText("SNR High(dB)", snrHighBuf, bufsize, ImGuiInputTextFlags_CharsDecimal | ImGuiInputTextFlags_CharsNoBlank);
             ImGui::InputText("SNR Step Count", snrStepCountBuf, bufsize, ImGuiInputTextFlags_CharsDecimal | ImGuiInputTextFlags_CharsNoBlank);
             ImGui::InputText("Repetitions Per SNR", repsPerSNRBuf, bufsize, ImGuiInputTextFlags_CharsDecimal | ImGuiInputTextFlags_CharsNoBlank);
 
-            ImGui::BeginDisabled(isStatExperimentInProcess);
+            ImGui::BeginDisabled(isStatExperimentInProgress);
             if (ImGui::Button("Get Stats")) {
                 // Compute Statistics
                 sampleRate = 1e3 * std::atof(sampleRateBuf); // "1e3 * " - kHz to Hz
@@ -193,14 +221,15 @@ int main() {
                 snrHigh = std::atof(snrHighBuf);
                 snrStepCount = std::atoi(snrStepCountBuf);
                 repsPerSNR = std::atoi(repsPerSNRBuf);
-                statResultFuture = std::async(std::launch::async, statisticalExperiment,
-                    lowAmp, highAmp, sampleRate, bitCount, bitRate,
-                    carrier, delay, snrLow, snrHigh, snrStepCount,
+                statResultFuture = std::async(std::launch::async, doQPSKGoldCodeStatExperiment,
+                    sampleRate, bitRate, bitCount, 
+                    snrLow, snrHigh, snrStepCount,
                     repsPerSNR, &statProgress);
-                isStatExperimentInProcess = true;
+                isStatExperimentInProgress = true;
             }
             ImGui::EndDisabled();
-            ImGui::ProgressBar(statProgress, ImVec2(-1.0, 0.0));
+            if (isStatExperimentInProgress)
+                ImGui::ProgressBar(statProgress, ImVec2(-1.0, 0.0));
             ImGui::PopItemWidth();
         }
 #endif
@@ -251,18 +280,48 @@ int main() {
                 }
                 ImPlot::EndPlot();
             }
+            if (ImPlot::BeginPlot("Clamped Filter Output")) {
+                for (int i{ 0 }; i < QPSKGoldCodeExperiment::filterCount; ++i) {
+					if (expResult.clampedFilterConv[i].timeSamples.size() != 0 && 
+                        expResult.clampedFilterConv[i].timeSamples.size() == expResult.clampedFilterConv[i].valueSamples.size()) {
+						auto dataSize = static_cast<int>(expResult.clampedFilterConv[i].timeSamples.size());
+						//ImPlot::SetNextLineStyle(ImVec4(1.0f, 0.0f, 0.0f, 1.0f), 1.5f);
+                        char legendName[16];
+                        sprintf_s(legendName, 16, "Filter %d", i);
+                        ImPlot::SetNextMarkerStyle(ImPlotMarker_Circle);
+						ImPlot::PlotLine(legendName, &expResult.clampedFilterConv[i].timeSamples[0],
+							&expResult.clampedFilterConv[i].valueSamples[0], dataSize);
+					}
+                }
+                ImPlot::EndPlot();
+            }
+            if (ImPlot::BeginPlot("Derivative")) {
+                for (int i{ 0 }; i < QPSKGoldCodeExperiment::filterCount; ++i) {
+					if (expResult.derivative[i].timeSamples.size() != 0 && 
+                        expResult.derivative[i].timeSamples.size() == expResult.derivative[i].valueSamples.size()) {
+						auto dataSize = static_cast<int>(expResult.derivative[i].timeSamples.size());
+						//ImPlot::SetNextLineStyle(ImVec4(1.0f, 0.0f, 0.0f, 1.0f), 1.5f);
+                        char legendName[16];
+                        sprintf_s(legendName, 16, "Derivative %d", i);
+                        ImPlot::SetNextMarkerStyle(ImPlotMarker_Circle);
+						ImPlot::PlotLine(legendName, &expResult.derivative[i].timeSamples[0],
+							&expResult.derivative[i].valueSamples[0], dataSize);
+					}
+                }
+                ImPlot::EndPlot();
+            }
 
             ImGui::End();
         }
 
-#if 0
+#if 1 
         // Check if stat result is ready
         {
             if (statResultFuture.valid()) {
                 auto status = statResultFuture.wait_for(std::chrono::seconds(0));
                 if (status == std::future_status::ready) {
                     statResult = statResultFuture.get();
-                    isStatExperimentInProcess = false;
+                    isStatExperimentInProgress = false;
                     statProgress = -1.0;
                 }
             }
@@ -271,30 +330,18 @@ int main() {
         {
             ImGui::Begin("Statistics");
             if (ImPlot::BeginPlot("Statistics")) {
-                if (statResult.ASKprobVsSNR.timeSamples.size() != 0 && statResult.ASKprobVsSNR.timeSamples.size() == statResult.ASKprobVsSNR.valueSamples.size()) {
-                    auto dataSize = static_cast<int>(statResult.ASKprobVsSNR.timeSamples.size());
-                    //ImPlot::SetNextLineStyle(ImVec4(1.0f, 0.0f, 0.0f, 1.0f), 1.5f);
-                    ImPlot::PlotLine("ASK", &statResult.ASKprobVsSNR.timeSamples[0],
-                        &statResult.ASKprobVsSNR.valueSamples[0], dataSize);
+                if (statResult.timeSamples.size() != 0 && statResult.timeSamples.size() == statResult.valueSamples.size()) {
+                    auto dataSize = static_cast<int>(statResult.timeSamples.size());
+                    ImPlot::PlotLine("", &statResult.timeSamples[0],
+                        &statResult.valueSamples[0], dataSize);
                 }
-                if (statResult.BPSKprobVsSNR.timeSamples.size() != 0 && statResult.BPSKprobVsSNR.timeSamples.size() == statResult.BPSKprobVsSNR.valueSamples.size()) {
-                    auto dataSize = static_cast<int>(statResult.BPSKprobVsSNR.timeSamples.size());
-                    //ImPlot::SetNextLineStyle(ImVec4(1.0f, 0.0f, 0.0f, 1.0f), 1.5f);
-                    ImPlot::PlotLine("BPSK", &statResult.BPSKprobVsSNR.timeSamples[0],
-                        &statResult.BPSKprobVsSNR.valueSamples[0], dataSize);
-                }
-                if (statResult.MSKprobVsSNR.timeSamples.size() != 0 && statResult.MSKprobVsSNR.timeSamples.size() == statResult.MSKprobVsSNR.valueSamples.size()) {
-                    auto dataSize = static_cast<int>(statResult.MSKprobVsSNR.timeSamples.size());
-                    //ImPlot::SetNextLineStyle(ImVec4(1.0f, 0.0f, 0.0f, 1.0f), 1.5f);
-                    ImPlot::PlotLine("MSK", &statResult.MSKprobVsSNR.timeSamples[0],
-                        &statResult.MSKprobVsSNR.valueSamples[0], dataSize);
-                }
+                
                 ImPlot::EndPlot();
             }
             ImGui::End();
         }
 #endif
-        //ImGui::ShowDemoWindow();
+        ImGui::ShowDemoWindow();
         ImPlot::ShowDemoWindow();
 
         // Rendering

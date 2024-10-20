@@ -66,6 +66,9 @@
     <ClCompile Include="MainWindow2.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="Tasks2.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="SignalModel.hpp">
