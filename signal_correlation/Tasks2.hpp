@@ -39,9 +39,10 @@ public:
 		computeGoldCodeMatchedFilters();
 		computeMatchedFilterConvolutions();
 		movingAverage__(10);
-		clampFilterConvolution();
+		clampFilterConvolutions();
 		populateDerivatives__();
 		extractReceivedBits();
+		//extractReceivedBitsWithTimeSync();
 		computeErrorProbability();
 		return result_;
 	}
@@ -96,7 +97,7 @@ private:
 		}
 	}
 
-	void clampFilterConvolution() {
+	void clampFilterConvolutions() {
 		constexpr double threshold{ 0.75 };
 		for (size_t i{ 0 }; i < filterCount; ++i) {
 			auto maxVal = std::max_element(result_.filterConv[i].valueSamples.begin(),
@@ -151,6 +152,31 @@ private:
 			result_.receivedBits.push_back(bitPair.second == 0 ? '0' : '1');
 		}
 
+	}
+
+	void extractReceivedBitsWithTimeSync() {
+		std::vector<std::tuple<double,int>> peaks;
+		size_t windowSize{ filterIQ_[0].size() };
+		size_t windowStart{ windowSize / 2 };
+		size_t windowEnd{ 
+			result_.filterConv[0].timeSamples.size() - 3*windowSize/2
+		};
+		for (size_t windowPos{ windowStart }; windowPos < windowEnd; windowPos += windowSize) {
+			std::vector<std::tuple<double, int>> filterMaxOutputs; // tuple of value and filter index
+			for (size_t i{ 0 }; i < filterCount; ++i) {
+				auto begIt = result_.filterConv[i].valueSamples.begin();
+				auto endIt = result_.filterConv[i].valueSamples.begin();
+				std::advance(begIt, windowPos);
+				std::advance(endIt, windowPos + windowSize);
+				filterMaxOutputs.emplace_back(*std::max_element(begIt, endIt), i);
+			}
+			peaks.push_back(*std::max_element(filterMaxOutputs.begin(), filterMaxOutputs.end()));
+		}
+		for (auto& elt : peaks) {
+			auto bitPair = filterBitPair[std::get<1>(elt)];
+			result_.receivedBits.push_back(bitPair.first == 0 ? '0' : '1');
+			result_.receivedBits.push_back(bitPair.second == 0 ? '0' : '1');
+		}
 	}
 
 	void movingAverage__(int windowSize) {
@@ -231,72 +257,5 @@ Samples<UnitDSP::dB, double> doQPSKGoldCodeStatExperiment(UnitDSP::Hertz sampleR
 														  size_t repsPerSNR, 
 														  float* statProgress);
 
-#if 0
-ExperimentResult singleGoldCodeExperiment(UnitDSP::Hertz sampleRate, 
-										  size_t bitCount, 
-									      double bitRate, 
-										  UnitDSP::dB SNR)
-{
-	auto bits = generateRandomBits(bitCount);
-	GoldCodeBitStreamTransformer goldCodeTransformer(2); // QPSK - 2 bits per symbol
-
-	// bits = { 0, 0, 0, 0, 0 ,0 ,0 ,0 ,0 , 0, 0, 0 };
-	// bits = std::vector<int>(bitCount, 0);
-
-	auto goldCodeBits = transformBitsToGoldCode(goldCodeTransformer, bits);
-	ComplexSignalQPSKSampler qpskSampler(sampleRate, 0.0, bitRate);
-	qpskSampler.setBits(goldCodeBits);
-	auto samplesIQ = qpskSampler.sample();
-	qpskSampler.setBits(goldCodeTransformer.getGoldCode({ 0, 0 }));
-	auto filterIQSamples1 = getMatchedFilter(qpskSampler.sample().valueSamples);
-	qpskSampler.setBits(goldCodeTransformer.getGoldCode({ 0, 1 }));
-	auto filterIQSamples2 = getMatchedFilter(qpskSampler.sample().valueSamples);
-	qpskSampler.setBits(goldCodeTransformer.getGoldCode({ 1, 0 }));
-	auto filterIQSamples3 = getMatchedFilter(qpskSampler.sample().valueSamples);
-	qpskSampler.setBits(goldCodeTransformer.getGoldCode({ 1, 1 }));
-	auto filterIQSamples4 = getMatchedFilter(qpskSampler.sample().valueSamples);
-	ExperimentResult result;
-	result.I.timeSamples = samplesIQ.timeSamples;
-	std::transform(
-		samplesIQ.valueSamples.begin(),
-		samplesIQ.valueSamples.end(),
-		std::back_inserter(result.I.valueSamples),
-		[](auto& elt) {
-			return elt.real();
-		}
-	);
-	result.Q.timeSamples = samplesIQ.timeSamples;
-	std::transform(
-		samplesIQ.valueSamples.begin(),
-		samplesIQ.valueSamples.end(),
-		std::back_inserter(result.Q.valueSamples),
-		[](auto& elt) {
-			return elt.imag();
-		}
-	);
-	double dt = 1.0 / sampleRate;
-	auto filterCorrTemp = computeComplexConvolution(samplesIQ.valueSamples, filterIQSamples1);
-	for (int i{ 0 }; i < filterCorrTemp.timeSamples.size(); ++i) {
-		result.filterConv1.timeSamples.push_back(static_cast<double>(filterCorrTemp.timeSamples[i]) * dt);
-		result.filterConv1.valueSamples.push_back(std::abs(filterCorrTemp.valueSamples[i]));
-	}
-	filterCorrTemp = computeComplexConvolution(samplesIQ.valueSamples, filterIQSamples2);
-	for (int i{ 0 }; i < filterCorrTemp.timeSamples.size(); ++i) {
-		result.filterConv2.timeSamples.push_back(static_cast<double>(filterCorrTemp.timeSamples[i]) * dt);
-		result.filterConv2.valueSamples.push_back(std::abs(filterCorrTemp.valueSamples[i]));
-	}
-	filterCorrTemp = computeComplexConvolution(samplesIQ.valueSamples, filterIQSamples3);
-	for (int i{ 0 }; i < filterCorrTemp.timeSamples.size(); ++i) {
-		result.filterConv3.timeSamples.push_back(static_cast<double>(filterCorrTemp.timeSamples[i]) * dt);
-		result.filterConv3.valueSamples.push_back(std::abs(filterCorrTemp.valueSamples[i]));
-	}
-	filterCorrTemp = computeComplexConvolution(samplesIQ.valueSamples, filterIQSamples4);
-	for (int i{ 0 }; i < filterCorrTemp.timeSamples.size(); ++i) {
-		result.filterConv4.timeSamples.push_back(static_cast<double>(filterCorrTemp.timeSamples[i]) * dt);
-		result.filterConv4.valueSamples.push_back(std::abs(filterCorrTemp.valueSamples[i]));
-	}
-	return result;
-}
-#endif
 
 #endif
