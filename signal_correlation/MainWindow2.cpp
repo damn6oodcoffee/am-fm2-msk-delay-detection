@@ -172,6 +172,11 @@ int main() {
         static double snrHigh{};
         static char repsPerSNRBuf[bufsize] = "1000";
         static int repsPerSNR{};
+        
+        ImGui::SeparatorText("Extraction Type");
+        static int extractionType{ 0 };
+        ImGui::RadioButton("Threshold", &extractionType, 0); ImGui::SameLine();
+        ImGui::RadioButton("Time Sync", &extractionType, 1); 
 
         static std::string sentBits;
         static std::string receivedBits;
@@ -184,7 +189,8 @@ int main() {
             bitRate = std::atof(bitRateBuf);
             snr = std::atof(snrBuf);
             QPSKGoldCodeExperiment gcExp(sampleRate, bitRate);
-            expResult = gcExp.doExperiment(bitCount, snr);
+            bool timeSync{ extractionType == 1 };
+            expResult = gcExp.doExperiment(bitCount, snr, timeSync);
             sentBits.clear();
             receivedBits.clear();
             for (char c : expResult.sentBits)
@@ -221,10 +227,11 @@ int main() {
                 snrHigh = std::atof(snrHighBuf);
                 snrStepCount = std::atoi(snrStepCountBuf);
                 repsPerSNR = std::atoi(repsPerSNRBuf);
+                bool timeSync{ extractionType == 1 };
                 statResultFuture = std::async(std::launch::async, doQPSKGoldCodeStatExperiment,
                     sampleRate, bitRate, bitCount, 
                     snrLow, snrHigh, snrStepCount,
-                    repsPerSNR, &statProgress);
+                    repsPerSNR, timeSync, &statProgress);
                 isStatExperimentInProgress = true;
             }
             ImGui::EndDisabled();

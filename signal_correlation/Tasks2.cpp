@@ -12,6 +12,7 @@ Samples<UnitDSP::dB, double> doQPSKGoldCodeStatExperiment(UnitDSP::Hertz sampleR
 														  UnitDSP::dB highSNR,
 														  size_t stepCountSNR,
 														  size_t repsPerSNR,
+														  bool timeSync,
 														  float* statProgress)
 {
 	if (sampleRate < 0.0 || bitRate < 0.0 || bitCount % 2 == 1 
@@ -36,7 +37,7 @@ Samples<UnitDSP::dB, double> doQPSKGoldCodeStatExperiment(UnitDSP::Hertz sampleR
 
                 QPSKGoldCodeExperiment gcExperiment(sampleRate, bitRate);
 				accumError += gcExperiment.doExperiment(
-					bitCount, result.timeSamples[i]).errorProb;
+					bitCount, result.timeSamples[i], timeSync).errorProb;
 			}
 			result.valueSamples[i] = accumError / repsPerSNR;
 			if (statProgress) {

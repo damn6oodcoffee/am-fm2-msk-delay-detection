@@ -24,7 +24,7 @@ public:
 		, qpskSampler_(sampleRate, 0.0, bitRate)
 	{}
 
-	ExperimentResult doExperiment(size_t bitCount, UnitDSP::dB SNR)
+	ExperimentResult doExperiment(size_t bitCount, UnitDSP::dB SNR, bool timeSync)
 	{
 		if (bitCount % symbolBitLength_ != 0)
 			throw std::runtime_error("only even number of bits is allowed");
@@ -38,11 +38,14 @@ public:
 		populateIQComponents();
 		computeGoldCodeMatchedFilters();
 		computeMatchedFilterConvolutions();
-		movingAverage__(10);
-		clampFilterConvolutions();
-		populateDerivatives__();
-		extractReceivedBits();
-		//extractReceivedBitsWithTimeSync();
+		//populateDerivatives__();
+		if (!timeSync) {
+			movingAverage__(10);
+			clampFilterConvolutions();
+			extractReceivedBits();
+		} else {
+			extractReceivedBitsWithTimeSync();
+		}
 		computeErrorProbability();
 		return result_;
 	}
@@ -254,7 +257,8 @@ Samples<UnitDSP::dB, double> doQPSKGoldCodeStatExperiment(UnitDSP::Hertz sampleR
 														  UnitDSP::dB lowSNR,
 														  UnitDSP::dB highSNR,
 														  size_t stepCountSNR,
-														  size_t repsPerSNR, 
+														  size_t repsPerSNR,
+														  bool timeSync,
 														  float* statProgress);
 
 
