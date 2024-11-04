@@ -31,9 +31,13 @@
     <ClCompile Include="..\implot\implot_demo.cpp" />
     <ClCompile Include="..\implot\implot_items.cpp" />
     <ClCompile Include="ComplexSignal.cpp" />
+    <ClCompile Include="DSPFunctions.cpp" />
     <ClCompile Include="GoldCode.cpp" />
+    <ClCompile Include="Init.cpp" />
+    <ClCompile Include="main.cpp" />
     <ClCompile Include="MainWindow.cpp" />
     <ClCompile Include="MainWindow2.cpp" />
+    <ClCompile Include="MainLoop.cpp" />
     <ClCompile Include="SignalModel.cpp" />
     <ClCompile Include="Tasks.cpp" />
     <ClCompile Include="Tasks2.cpp" />
@@ -48,7 +52,10 @@
     <ClInclude Include="..\implot\implot.h" />
     <ClInclude Include="..\implot\implot_internal.h" />
     <ClInclude Include="ComplexSignal.hpp" />
+    <ClInclude Include="DSPFunctions.hpp" />
     <ClInclude Include="GoldCode.hpp" />
+    <ClInclude Include="Init.hpp" />
+    <ClInclude Include="MainLoop.hpp" />
     <ClInclude Include="SignalModel.hpp" />
     <ClInclude Include="Tasks.hpp" />
     <ClInclude Include="Tasks2.hpp" />
