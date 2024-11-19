@@ -12,11 +12,12 @@ namespace DSP {
         using Seconds = double;
         using dB = double;
     }
-
+        
     template<typename TypeX, typename TypeY>
     struct Samples {
         Samples() {}
-        Samples(std::vector<TypeX> timeSamples, std::vector<TypeY> valueSamples)
+        Samples(const std::vector<TypeX>& timeSamples, 
+                const std::vector<TypeY>& valueSamples)
             : timeSamples{ timeSamples }
             , valueSamples{ valueSamples }
         {}
@@ -42,71 +43,76 @@ namespace DSP {
             valueSamples = std::move(other.valueSamples);
             return *this;
         }
+        
+        void append(TypeX x, TypeY y) {
+            timeSamples.push_back(x);
+            valueSamples.push_back(y);
+        }
 
+        void pop() {
+            timeSamples.pop_back();
+            valueSamples.pop_back();
+        }
+
+        void clear() {
+            timeSamples.clear();
+            valueSamples.clear();
+        }
+        
         std::vector<TypeX> timeSamples;
         std::vector<TypeY> valueSamples;
     };
 
-	/**
-	 * Slow DFT implementation for arbitrary data size.
-	 *
-	 * @data In/out parameter. Should contain data points to transform. Out goes transformed data.
-	 * @is Direction of transform. Should be -1/1 (forward/inverse).
-	 */
-	void SlowDFT(std::vector<std::complex<double>>& data, int is);
+	
+	using ComplexVec = std::vector<std::complex<double>>;
+    using RealVec = std::vector<double>;
+	ComplexVec fft(const ComplexVec& data);
+	ComplexVec ifft(const ComplexVec& data);
+   
+    using ComplexMat2D = std::vector<std::vector<std::complex<double>>>;
+    ComplexMat2D fft2D(const ComplexMat2D& data);
+    ComplexMat2D ifft2D(const ComplexMat2D& data);
 
-	/**
-	 * FFT implementation for data of size 2^x.
-	 *
-	 * @data In/out parameter. Should contain data points to transform. Out goes transformed data.
-	 * @is Direction of transform. Should be -1/1 (forward/inverse).
-	 */
-	void fft(std::vector<std::complex<double>>& data, int is);
+    ComplexVec fftshift(const ComplexVec& data);
+    ComplexVec ifftshift(const ComplexVec & data);
 
-	/**
-	 * 2D FFT implementation for data of size 2^x.
-	 *
-	 * @data In/out parameter. Should contain data points to transform. Out goes transformed data.
-	 * @is Direction of transform. Should be -1/1 (forward/inverse).
-	 */
-	void fft2D(std::vector<std::vector<std::complex<double>>>& data, int is);
-
-	/**
-	 * Compute spectrogram for given data.
-	 *
-	 * @data In parameter. Should contain data points to transform.
-	 * @spectrogram Out parameter for resulting spectrogram.
-	 * @windowSize DFT window size.
-	 * @windowOver Window overlap.
-	 */
-	void ComputeSpectrogram(const std::vector<std::complex<double>>& data,
-		std::vector<std::vector<double>>& spectrogram,
-		int windowSize,
-		int windowOverlap);
-
-
-
-    Samples<int, double> computeCrossCorrelation(const std::vector<double>& sequenceA,
-        const std::vector<double>& sequenceB);
+    Samples<int, double> computeCrossCorrelation(const RealVec& sequenceA,
+        const RealVec& sequenceB);
 
     std::vector<int> generateRandomBits(size_t size);
 
-    std::vector<double> addNoise(const std::vector<double>& amplitudes, UnitDSP::dB signalToNoiseRatio);
+    RealVec addNoise(const RealVec& amplitudes, UnitDSP::dB SNR);
 
 	Samples<int, std::complex<double>> computeComplexCrossCorrelation(
-		const std::vector<std::complex<double>>& sequenceA,
-		const std::vector<std::complex<double>>& sequenceB);
+		const ComplexVec& sequenceA,
+		const ComplexVec& sequenceB);
 
-	std::vector<std::complex<double>> getMatchedFilter(
-		const std::vector<std::complex<double>>& samples);
+	ComplexVec getMatchedFilter(
+		const ComplexVec& samples);
 
-	std::vector<std::complex<double>> addComplexNoise(
-		const std::vector<std::complex<double>>& amplitudes,
-		UnitDSP::dB signalToNoiseRatio);
+	ComplexVec addComplexNoise(
+		const ComplexVec& amplitudes,
+		UnitDSP::dB SNR);
 
 	Samples<int, std::complex<double>> computeComplexConvolution(
-		const std::vector<std::complex<double>>& sequenceA,
-		const std::vector<std::complex<double>>& sequenceB);
+		const ComplexVec& sequenceA,
+		const ComplexVec& sequenceB);
+
+    ComplexMat2D computeAmbiguityFunction(
+        const ComplexVec& sequenceA,
+        const ComplexVec& sequenceB);
+
+    template<typename T>
+    std::vector<T> linspace(T start, T stop, T step) {
+        if (start < stop && step == static_cast<T>(0))
+            throw std::runtime_error("");
+        std::vector<T> result;
+        while (start < stop) {
+            result.push_back(start);
+            start += step;
+        }
+        return result;
+    }
 }
 
 #endif

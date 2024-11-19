@@ -35,12 +35,14 @@
     <ClCompile Include="GoldCode.cpp" />
     <ClCompile Include="Init.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="MainLoop3.cpp" />
     <ClCompile Include="MainWindow.cpp" />
     <ClCompile Include="MainWindow2.cpp" />
     <ClCompile Include="MainLoop.cpp" />
     <ClCompile Include="SignalModel.cpp" />
     <ClCompile Include="Tasks.cpp" />
     <ClCompile Include="Tasks2.cpp" />
+    <ClCompile Include="Tasks3.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\imgui\imconfig.h" />
@@ -55,10 +57,13 @@
     <ClInclude Include="DSPFunctions.hpp" />
     <ClInclude Include="GoldCode.hpp" />
     <ClInclude Include="Init.hpp" />
+    <ClInclude Include="IQSignal.hpp" />
     <ClInclude Include="MainLoop.hpp" />
+    <ClInclude Include="MainLoop3.hpp" />
     <ClInclude Include="SignalModel.hpp" />
     <ClInclude Include="Tasks.hpp" />
     <ClInclude Include="Tasks2.hpp" />
+    <ClInclude Include="Tasks3.hpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>17.0</VCProjectVersion>
