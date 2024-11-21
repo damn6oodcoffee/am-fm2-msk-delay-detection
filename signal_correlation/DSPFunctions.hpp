@@ -3,6 +3,7 @@
 
 #include <complex>
 #include <vector>
+#include <numeric> 
 
 namespace DSP {
 
@@ -102,6 +103,7 @@ namespace DSP {
         const ComplexVec& sequenceA,
         const ComplexVec& sequenceB);
 
+
     template<typename T>
     std::vector<T> linspace(T start, T stop, T step) {
         if (start < stop && step == static_cast<T>(0))
@@ -113,6 +115,24 @@ namespace DSP {
         }
         return result;
     }
+    
+    template <typename T>
+    T meanValue(const std::vector<T>& data) {
+        if (data.empty())
+            return T{};
+        return std::reduce(data.begin(), data.end()) / data.size();
+    }
+
+    template <typename T>
+    T stdDeviation(const std::vector<T>& data) {
+        auto mean = meanValue(data);
+        auto size = data.size();
+        auto variance = std::accumulate(data.begin(), data.end(), T{}, [mean, size](T sum, T next) {
+            return sum + (next - mean) * (next - mean) / size;
+            });
+        return std::sqrt(variance);
+    }
+
 }
 
 #endif

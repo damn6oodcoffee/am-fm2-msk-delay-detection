@@ -192,13 +192,14 @@ namespace DSP {
         const Samples<UnitDSP::Seconds, IQSignal::IQ>& IQSamples)
     {
         using namespace std::complex_literals;
+        using std::numbers::pi;
         Samples<UnitDSP::Seconds, std::complex<double>> signal;
         signal.timeSamples = IQSamples.timeSamples;
         for (size_t i{ 0 }; i < signal.timeSamples.size(); ++i) {
             auto t = signal.timeSamples[i];
-            auto I = IQSamples.valueSamples[0].I;
-            auto Q = IQSamples.valueSamples[0].Q;
-            auto value = (I + 1i * Q) * exp(1i * carrier * t);
+            auto I = IQSamples.valueSamples[i].I;
+            auto Q = IQSamples.valueSamples[i].Q;
+            auto value = (I + 1i * Q) * exp(1i * 2.0 * pi * carrier * t);
             signal.valueSamples.push_back(value);
         }
         return signal;
@@ -215,7 +216,7 @@ namespace DSP {
             distortedSignal.valueSamples.begin(),
             distortedSignal.valueSamples.begin(),
             [dopplerShift](UnitDSP::Seconds t, std::complex<double> val) {
-                return val * exp(1i * dopplerShift * t);
+                return val * exp(1i * 2.0 * std::numbers::pi * dopplerShift * t);
             });
         return distortedSignal;
     }
