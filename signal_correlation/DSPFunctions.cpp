@@ -1,5 +1,6 @@
 #include <numbers>
 #include <random>
+#include "fftw3.h"
 #include "DSPFunctions.hpp"
 
 
@@ -121,9 +122,36 @@ namespace DSP {
     }
 
     ComplexVec fft(const ComplexVec& data) {
-        ComplexVec out;
-        detail::fft(out, -1);
-        return out;
+        //ComplexVec out;
+        //detail::fft(out, -1);
+        //return out;
+        
+        fftw_complex* in, * out;
+        fftw_plan p;
+
+        in = (fftw_complex*)fftw_malloc(sizeof(fftw_complex) * data.size());
+        out = (fftw_complex*)fftw_malloc(sizeof(fftw_complex) * data.size());
+
+        for (int i{ 0 }; i < data.size(); ++i) {
+            in[i][0] = data[i].real();
+            in[i][1] = data[i].imag();
+        }
+            
+        p = fftw_plan_dft_1d(data.size(), in, out, FFTW_FORWARD, FFTW_ESTIMATE);
+        
+        fftw_execute(p);
+        
+        ComplexVec result;
+        for (int i{ 0 }; i < data.size(); ++i) {
+            in[i][0] = data[i].real();
+            in[i][1] = data[i].imag();
+            result.push_back({ out[i][0], out[i][1] });
+        }
+
+        fftw_destroy_plan(p);
+        fftw_free(in);
+        fftw_free(out);
+        return result;
     }
 
     ComplexVec ifft(const ComplexVec& data) {
@@ -311,6 +339,32 @@ namespace DSP {
         return output;
     }
     
+    RealVec abs(const ComplexVec& data) {
+        RealVec result(data.size());
+        std::transform(data.begin(), data.end(), result.begin(),
+            [](const std::complex<double>& val) {
+                return std::abs(val);
+            });
+        return result;
+    }
+
+    RealMat2D abs(const ComplexMat2D& data) {
+        RealMat2D result;
+        for (auto& row : data) {
+            result.push_back(abs(row));
+        }
+        return result;
+    }
+
+    double maxValue(const RealMat2D& data) {
+        if (data.empty())
+            throw std::runtime_error("empty data");
+        double max = data[0][0];
+        for (auto& row : data)
+            for (auto& elt : row)
+                max = std::max(max, elt);
+        return max;
+    }
 
     ComplexMat2D computeAmbiguityFunction(
         const ComplexVec& sequenceA,

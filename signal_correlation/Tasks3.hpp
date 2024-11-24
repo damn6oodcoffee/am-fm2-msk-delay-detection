@@ -51,7 +51,32 @@ namespace Task3 {
         UnitDSP::Hertz carrier, UnitDSP::Seconds delay, UnitDSP::Seconds duration,
         UnitDSP::Hertz dopplerLow, UnitDSP::Hertz dopplerHigh, int dopplerStepCount,
         int repsPerDoppler, UnitDSP::dB SNR, float* statProgress);
+    
+    struct AmbiguityFuncExperimentResult {
+        RealMat2D ambigFunc;
+        RealVec ambigFuncVec;
+        int rows;
+        int cols;
+        double carrierOffsetEstimate;
+        double delayEstimate;
+    };
 
+    AmbiguityFuncExperimentResult doAmbiguityFuncExperiment(IQSignal& iqSignal, UnitDSP::Hertz carrier,
+        size_t bitCount, UnitDSP::Seconds duration, UnitDSP::Seconds delay,
+        UnitDSP::dB SNR, UnitDSP::Hertz doppler);
+
+    AmbiguityFuncExperimentResult ambiguityFuncExperimentASK(double amplitudeLow, double amplitudeHigh,
+        UnitDSP::Hertz sampleRate, size_t bitCount, double bitRate,
+        UnitDSP::Hertz carrier, UnitDSP::Seconds delay, UnitDSP::Seconds duration,
+        UnitDSP::dB SNR, UnitDSP::Hertz doppler);
+
+    AmbiguityFuncExperimentResult ambiguityFuncExperimentBPSK(UnitDSP::Hertz sampleRate, size_t bitCount,
+        double bitRate, UnitDSP::Hertz carrier, UnitDSP::Seconds delay,
+        UnitDSP::Seconds duration, UnitDSP::dB SNR, UnitDSP::Hertz doppler);
+
+    AmbiguityFuncExperimentResult ambiguityFuncExperimentMSK(UnitDSP::Hertz sampleRate, size_t bitCount,
+        double bitRate, UnitDSP::Hertz carrier, UnitDSP::Seconds delay,
+        UnitDSP::Seconds duration, UnitDSP::dB SNR, UnitDSP::Hertz doppler);
 }
 
 #endif

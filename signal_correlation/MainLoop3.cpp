@@ -23,6 +23,8 @@ void mainLoop3(Init::ImguiAndOpenGLHandler& handler) {
     float statProgress{ -1.0 };
     bool isStatExperimentInProcess{ false };
 
+    AmbiguityFuncExperimentResult ambigFuncResult;
+
     ImVec4 blue{ 0.0f, 0.0f, 1.0f, 1.0f };
     ImVec4 orange{ 1.0f, 0.5f, 0.0f, 1.0f };
     ImVec4 green{ 0.0f, 0.8f, 0.0f, 1.0f };
@@ -154,6 +156,26 @@ void mainLoop3(Init::ImguiAndOpenGLHandler& handler) {
             ImGui::EndDisabled();
             ImGui::ProgressBar(statProgress, ImVec2(-1.0, 0.0));
             ImGui::PopItemWidth();
+        }
+
+        ImGui::SeparatorText("");
+        if (ImGui::Button((const char*)u8"Взаимная ф-я неопр.")) {
+            sampleRate = 1e3 * std::atof(sampleRateBuf); // "1e3 * " - kHz to Hz
+            bitCount = std::atoi(bitCountBuf);
+            bitRate = std::atof(bitRateBuf);
+            carrier = 1e3 * std::atof(carrierBuf); // "1e3 * " - kHz to Hz
+            delay = 1e-3 * std::atof(delayBuf); // "1e-3 * " - msec to sec
+            duration = 1e-3 * std::atof(durationBuf); // "1e-3 * " - msec to sec
+            doppler = std::atof(dopplerBuf);
+            snr = std::atof(snrBuf);
+            lowAmp = std::atof(lowAmpBuf);
+            highAmp = std::atof(highAmpBuf);
+            if (modulationType == 0)
+                ambigFuncResult = ambiguityFuncExperimentASK(lowAmp, highAmp, sampleRate, bitCount, bitRate, carrier, delay, duration, snr, doppler);
+            if (modulationType == 1)
+                ambigFuncResult = ambiguityFuncExperimentBPSK(sampleRate, bitCount, bitRate, carrier, delay, duration, snr, doppler);
+            if (modulationType == 2)
+                ambigFuncResult = ambiguityFuncExperimentMSK(sampleRate, bitCount, bitRate, carrier, delay, duration, snr, doppler);
         }
 
         ImGui::End();
@@ -293,22 +315,22 @@ void mainLoop3(Init::ImguiAndOpenGLHandler& handler) {
         // 6. ImPlot window for stat data
         {
             ImGui::Begin((const char*)u8"Статистика");
-            if (ImPlot::BeginPlot((const char*)u8"Статистика")) {
+            if (ImPlot::BeginPlot((const char*)u8"Критерий выраженности")) {
                 if (statResult.ASKmaxToStd.timeSamples.size() != 0 && statResult.ASKmaxToStd.timeSamples.size() == statResult.ASKmaxToStd.valueSamples.size()) {
                     auto dataSize = static_cast<int>(statResult.ASKmaxToStd.timeSamples.size());
-                    //ImPlot::SetNextLineStyle(ImVec4(1.0f, 0.0f, 0.0f, 1.0f), 1.5f);
+                    ImPlot::SetNextLineStyle(blue, weight);
                     ImPlot::PlotLine("ASK", &statResult.ASKmaxToStd.timeSamples[0],
                         &statResult.ASKmaxToStd.valueSamples[0], dataSize);
                 }
                 if (statResult.BPSKmaxToStd.timeSamples.size() != 0 && statResult.BPSKmaxToStd.timeSamples.size() == statResult.BPSKmaxToStd.valueSamples.size()) {
                     auto dataSize = static_cast<int>(statResult.BPSKmaxToStd.timeSamples.size());
-                    //ImPlot::SetNextLineStyle(ImVec4(1.0f, 0.0f, 0.0f, 1.0f), 1.5f);
+                    ImPlot::SetNextLineStyle(orange, weight);
                     ImPlot::PlotLine("BPSK", &statResult.BPSKmaxToStd.timeSamples[0],
                         &statResult.BPSKmaxToStd.valueSamples[0], dataSize);
                 }
                 if (statResult.MSKmaxToStd.timeSamples.size() != 0 && statResult.MSKmaxToStd.timeSamples.size() == statResult.MSKmaxToStd.valueSamples.size()) {
                     auto dataSize = static_cast<int>(statResult.MSKmaxToStd.timeSamples.size());
-                    //ImPlot::SetNextLineStyle(ImVec4(1.0f, 0.0f, 0.0f, 1.0f), 1.5f);
+                    ImPlot::SetNextLineStyle(green, weight);
                     ImPlot::PlotLine("MSK", &statResult.MSKmaxToStd.timeSamples[0],
                         &statResult.MSKmaxToStd.valueSamples[0], dataSize);
                 }
@@ -317,6 +339,45 @@ void mainLoop3(Init::ImguiAndOpenGLHandler& handler) {
             ImGui::End();
         }
         
+        // Ambiguity Function Heatmap
+        {
+            static ImPlotAxisFlags axes_flags = ImPlotAxisFlags_NoGridLines | ImPlotAxisFlags_NoTickMarks;
+
+            ImGui::Begin((const char*)u8"Взаимная функция неопределенности");
+            static ImPlotColormap map = ImPlotColormap_Jet;
+            ImPlot::PushColormap(map);
+            if (!ambigFuncResult.ambigFunc.empty() && !ambigFuncResult.ambigFunc[0].empty() && ImPlot::BeginPlot((const char*)u8"Критерий выраженности")) {
+                ImPlot::SetupAxes(nullptr, nullptr, ImPlotAxisFlags_NoDecorations, ImPlotAxisFlags_NoDecorations);
+                ImPlot::SetupAxesLimits(-1, 1, -1, 1);
+                ImPlot::PlotHeatmap("", ambigFuncResult.ambigFuncVec.data(),
+                    ambigFuncResult.rows, ambigFuncResult.cols,
+                    0, 0, nullptr);
+                ImPlot::EndPlot();
+            }
+            static float values1[7][7] = { {0.8f, 2.4f, 2.5f, 3.9f, 0.0f, 4.0f, 0.0f},
+                                   {2.4f, 0.0f, 4.0f, 1.0f, 2.7f, 0.0f, 0.0f},
+                                   {1.1f, 2.4f, 0.8f, 4.3f, 1.9f, 4.4f, 0.0f},
+                                   {0.6f, 0.0f, 0.3f, 0.0f, 3.1f, 0.0f, 0.0f},
+                                   {0.7f, 1.7f, 0.6f, 2.6f, 2.2f, 6.2f, 0.0f},
+                                   {1.3f, 1.2f, 0.0f, 0.0f, 0.0f, 3.2f, 5.1f},
+                                   {0.1f, 2.0f, 0.0f, 1.4f, 0.0f, 1.9f, 6.3f} };
+            static float scale_min = 0;
+            static float scale_max = 6.3f;
+            static const char* xlabels[] = { "C1","C2","C3","C4","C5","C6","C7" };
+            static const char* ylabels[] = { "R1","R2","R3","R4","R5","R6","R7" };
+            static ImPlotHeatmapFlags hm_flags = 0;
+            if (ImPlot::BeginPlot("##Heatmap1", ImVec2(225, 225), ImPlotFlags_NoLegend | ImPlotFlags_NoMouseText)) {
+                ImPlot::SetupAxes(nullptr, nullptr, axes_flags, axes_flags);
+                ImPlot::SetupAxisTicks(ImAxis_X1, 0 + 1.0 / 14.0, 1 - 1.0 / 14.0, 7, xlabels);
+                ImPlot::SetupAxisTicks(ImAxis_Y1, 1 - 1.0 / 14.0, 0 + 1.0 / 14.0, 7, ylabels);
+                ImPlot::PlotHeatmap("heat", values1[0], 7, 7, scale_min, scale_max, "%g", ImPlotPoint(0, 0), ImPlotPoint(1, 1), hm_flags);
+                ImPlot::EndPlot();
+            }
+            ImPlot::PopColormap(map);
+            ImGui::End();
+        }
+
+
         if (show_demo_window)
             ImGui::ShowDemoWindow();
         if (show_plot_demo_window)

@@ -71,6 +71,7 @@ namespace DSP {
 	ComplexVec ifft(const ComplexVec& data);
    
     using ComplexMat2D = std::vector<std::vector<std::complex<double>>>;
+    using RealMat2D = std::vector<std::vector<double>>;
     ComplexMat2D fft2D(const ComplexMat2D& data);
     ComplexMat2D ifft2D(const ComplexMat2D& data);
 
@@ -116,6 +117,11 @@ namespace DSP {
         return result;
     }
     
+    RealVec abs(const ComplexVec& data);
+    RealMat2D abs(const ComplexMat2D& data);
+
+    double maxValue(const RealMat2D& data);
+
     template <typename T>
     T meanValue(const std::vector<T>& data) {
         if (data.empty())

@@ -20,7 +20,7 @@ namespace Task3 {
         signal = addDopplerShift(doppler, signal);
         signal.valueSamples = addComplexNoise(signal.valueSamples, SNR);
         refSignal.valueSamples = addComplexNoise(refSignal.valueSamples, 10.0);
-#if 1
+#if 0
         decltype(signal) sig;
         sig.timeSamples = signal.timeSamples;
         decltype(refSignal) refSig;
@@ -234,5 +234,76 @@ namespace Task3 {
         return statResult;
     }
     
-     
+    
+    std::pair<int, int> getDelayAndCarrierOffsetIndices(const RealMat2D& data) {
+        std::pair<int, int> indices{ 0, 0 };
+        double max{ 0 };
+        for (int i{ 0 }; i < data.size(); ++i) {
+            for (int j{ 0 }; j < data[0].size(); ++j) {
+                if (max < data[i][j]) {
+                    indices = { i, j };
+                }
+            }
+        }
+        return indices;
+    }
+
+    AmbiguityFuncExperimentResult doAmbiguityFuncExperiment(IQSignal& iqSignal, UnitDSP::Hertz carrier,
+        size_t bitCount, UnitDSP::Seconds duration, UnitDSP::Seconds delay,
+        UnitDSP::dB SNR, UnitDSP::Hertz doppler)
+    {
+        auto bits = generateRandomBits(bitCount);
+        auto IQSamples = iqSignal.sample(bits);
+        auto refIQSamples = takeIQSlice(IQSamples, delay, duration);
+        auto signal = modulateCarrier(carrier, IQSamples);
+        auto refSignal = modulateCarrier(carrier, refIQSamples);
+
+  
+        signal = addDopplerShift(doppler, signal);
+        signal.valueSamples = addComplexNoise(signal.valueSamples, SNR);
+        refSignal.valueSamples = addComplexNoise(refSignal.valueSamples, 10.0);
+
+        auto ambigFunc = abs(computeAmbiguityFunction(signal.valueSamples, refSignal.valueSamples));
+        auto delayAndCarrierOffsetIndices = getDelayAndCarrierOffsetIndices(ambigFunc);
+        AmbiguityFuncExperimentResult result;
+        result.ambigFunc = ambigFunc;
+        result.carrierOffsetEstimate = delayAndCarrierOffsetIndices.first;
+        result.delayEstimate = delayAndCarrierOffsetIndices.second;
+
+        for (auto row : ambigFunc)
+            for (auto elt : row)
+                result.ambigFuncVec.push_back(elt);
+        result.rows = ambigFunc.size();
+        result.cols = ambigFunc[0].size();
+
+        return result;
+    }
+
+    AmbiguityFuncExperimentResult ambiguityFuncExperimentASK(double amplitudeLow, double amplitudeHigh,
+        UnitDSP::Hertz sampleRate, size_t bitCount, double bitRate,
+        UnitDSP::Hertz carrier, UnitDSP::Seconds delay, UnitDSP::Seconds duration,
+        UnitDSP::dB SNR, UnitDSP::Hertz doppler)
+    {
+        IQSignalASK ask(carrier, sampleRate, bitRate);
+        ask.setLowAndHigh(amplitudeLow, amplitudeHigh);
+        return doAmbiguityFuncExperiment(ask, carrier, bitCount, duration, delay, SNR, doppler);
+    }
+
+    AmbiguityFuncExperimentResult ambiguityFuncExperimentBPSK(UnitDSP::Hertz sampleRate, size_t bitCount,
+        double bitRate, UnitDSP::Hertz carrier, UnitDSP::Seconds delay,
+        UnitDSP::Seconds duration, UnitDSP::dB SNR, UnitDSP::Hertz doppler)
+    {
+        IQSignalBPSK bpsk(carrier, sampleRate, bitRate);
+        return doAmbiguityFuncExperiment(bpsk, carrier, bitCount, duration, delay, SNR, doppler);
+    }
+
+    AmbiguityFuncExperimentResult ambiguityFuncExperimentMSK(UnitDSP::Hertz sampleRate, size_t bitCount,
+        double bitRate, UnitDSP::Hertz carrier, UnitDSP::Seconds delay,
+        UnitDSP::Seconds duration, UnitDSP::dB SNR, UnitDSP::Hertz doppler)
+    {
+        IQSignalMSK msk(carrier, sampleRate, bitRate);
+        return doAmbiguityFuncExperiment(msk, carrier, bitCount, duration, delay, SNR, doppler);
+    }
+    
+    
 }
