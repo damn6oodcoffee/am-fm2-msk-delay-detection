@@ -59,6 +59,10 @@ namespace Task3 {
         int cols;
         double carrierOffsetEstimate;
         double delayEstimate;
+        std::pair<double, double> timeBounds;
+        std::pair<double, double> freqBounds;
+        RealVec timePoints;
+        RealVec freqPoints;
     };
 
     AmbiguityFuncExperimentResult doAmbiguityFuncExperiment(IQSignal& iqSignal, UnitDSP::Hertz carrier,

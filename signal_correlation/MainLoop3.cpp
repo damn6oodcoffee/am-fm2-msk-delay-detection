@@ -1,14 +1,13 @@
 
 #include <future>
-#include <GLFW/glfw3.h> // Will drag system OpenGL headers
 #include "imgui.h"
-#include "imgui_impl_glfw.h"
-#include "imgui_impl_opengl3.h"
 #include "implot.h"
 
 #include "Tasks3.hpp"
-#include "MainLoop3.hpp"
 
+#include "Plot3D/PlotScene.hpp"
+#include "MainLoop3.hpp"
+#include "FrameBuffer.hpp"
 
 void mainLoop3(Init::ImguiAndOpenGLHandler& handler) {
     using namespace Task3;
@@ -32,6 +31,17 @@ void mainLoop3(Init::ImguiAndOpenGLHandler& handler) {
     ImVec4 purple{ 0.7f, 0.0f, 1.0f, 1.0f };
     float weight = 2.0f;
 
+    // 3D plot stuff 
+    PlotScene plotScene;
+    plotScene.setPerspective(45.0f, 1.0f, 0.1f, 100.0f);
+    Surface3D surface;
+    SurfaceRange surfaceRange{ -1, 1, -1, 1 };
+    Surface3D::GridDimensions gridDims{ 256, 256 };
+    FrameBuffer sceneBuffer(1280, 720);
+    surface.computeVertices(sinc3D, surfaceRange, gridDims);
+    plotScene.plot(surface);
+    //
+
     while (handler.windowLoopCondition()) {
         bool skipLoop{ !handler.beginLoopRoutine() };
         if (skipLoop)
@@ -43,7 +53,7 @@ void mainLoop3(Init::ImguiAndOpenGLHandler& handler) {
         ImGui::PushItemWidth(150.0);
         // Sample Rate Input
         constexpr int bufsize{ 32 };
-        static char sampleRateBuf[bufsize] = "100";
+        static char sampleRateBuf[bufsize] = "20";
         static double sampleRate{};
         ImGui::InputText((const char*)u8"„астота дискретизации (к√ц)", sampleRateBuf, bufsize, ImGuiInputTextFlags_CharsDecimal | ImGuiInputTextFlags_CharsNoBlank);
         // Bit Count Input
@@ -55,7 +65,7 @@ void mainLoop3(Init::ImguiAndOpenGLHandler& handler) {
         static double bitRate{};
         ImGui::InputText((const char*)u8"Ѕитова€ скорость", bitRateBuf, bufsize, ImGuiInputTextFlags_CharsDecimal | ImGuiInputTextFlags_CharsNoBlank);
         // Carrier Input
-        static char carrierBuf[bufsize] = "20";
+        static char carrierBuf[bufsize] = "5";
         static double carrier{};
         ImGui::InputText((const char*)u8"Ќесуща€ частота (к√ц)", carrierBuf, bufsize, ImGuiInputTextFlags_CharsDecimal | ImGuiInputTextFlags_CharsNoBlank);
         // Delay Input
@@ -92,7 +102,7 @@ void mainLoop3(Init::ImguiAndOpenGLHandler& handler) {
         ImGui::RadioButton("BPSK", &modulationType, 1); ImGui::SameLine();
         ImGui::RadioButton("MSK", &modulationType, 2);
         static double lowAmp{};
-        static char lowAmpBuf[bufsize] = "0.2";
+        static char lowAmpBuf[bufsize] = "0.0";
         static double highAmp{};
         static char highAmpBuf[bufsize] = "1.0";
         if (modulationType == 0) {
@@ -176,7 +186,28 @@ void mainLoop3(Init::ImguiAndOpenGLHandler& handler) {
                 ambigFuncResult = ambiguityFuncExperimentBPSK(sampleRate, bitCount, bitRate, carrier, delay, duration, snr, doppler);
             if (modulationType == 2)
                 ambigFuncResult = ambiguityFuncExperimentMSK(sampleRate, bitCount, bitRate, carrier, delay, duration, snr, doppler);
+            // 3D plot
+            Surface3D surf;
+            std::vector<double> vertices;
+            for (int i{ 0 }; i < ambigFuncResult.rows; ++i) {
+                //for (int j{ 0 }; j < ambigFuncResult.cols; ++j) {
+                for (int j{ ambigFuncResult.cols-1 }; j >= 0; --j) {
+                    vertices.push_back(ambigFuncResult.timePoints[i]);
+                    vertices.push_back(ambigFuncResult.freqPoints[j]);
+                    vertices.push_back(ambigFuncResult.ambigFunc[i][j]);
+                }
+            }
+            surf.setVertices(vertices, { static_cast<unsigned int>(ambigFuncResult.rows), static_cast<unsigned int>(ambigFuncResult.cols) });
+            plotScene.plot(surf);
         }
+        // ImGui::SameLine();
+        static char delayEstimateAmbigFuncBuf[bufsize];
+        if (std::snprintf(delayEstimateAmbigFuncBuf, bufsize, "%f", 1e3 * ambigFuncResult.delayEstimate) > 0)
+            ImGui::InputText((const char*)u8"ќценка сдвига по времени (мс)", delayEstimateAmbigFuncBuf, bufsize, ImGuiInputTextFlags_ReadOnly);
+        // ImGui::SameLine();
+        static char dopplerEstimateAmbigFuncBuf[bufsize];
+        if (std::snprintf(dopplerEstimateAmbigFuncBuf, bufsize, "%f", ambigFuncResult.carrierOffsetEstimate) > 0)
+            ImGui::InputText((const char*)u8"ќценка доплеровского сдвига (√ц)", dopplerEstimateAmbigFuncBuf, bufsize, ImGuiInputTextFlags_ReadOnly);
 
         ImGui::End();
 
@@ -346,34 +377,17 @@ void mainLoop3(Init::ImguiAndOpenGLHandler& handler) {
             ImGui::Begin((const char*)u8"¬заимна€ функци€ неопределенности");
             static ImPlotColormap map = ImPlotColormap_Jet;
             ImPlot::PushColormap(map);
-            if (!ambigFuncResult.ambigFunc.empty() && !ambigFuncResult.ambigFunc[0].empty() && ImPlot::BeginPlot((const char*)u8" ритерий выраженности")) {
+            if (!ambigFuncResult.ambigFunc.empty() && !ambigFuncResult.ambigFunc[0].empty() && ImPlot::BeginPlot("## ambig func")) {
                 ImPlot::SetupAxes(nullptr, nullptr, ImPlotAxisFlags_NoDecorations, ImPlotAxisFlags_NoDecorations);
-                ImPlot::SetupAxesLimits(-1, 1, -1, 1);
+                ImPlot::SetupAxesLimits(
+                    ambigFuncResult.freqBounds.first, ambigFuncResult.freqBounds.second, 
+                    ambigFuncResult.timeBounds.first, ambigFuncResult.timeBounds.second);
                 ImPlot::PlotHeatmap("", ambigFuncResult.ambigFuncVec.data(),
                     ambigFuncResult.rows, ambigFuncResult.cols,
                     0, 0, nullptr);
                 ImPlot::EndPlot();
             }
-            static float values1[7][7] = { {0.8f, 2.4f, 2.5f, 3.9f, 0.0f, 4.0f, 0.0f},
-                                   {2.4f, 0.0f, 4.0f, 1.0f, 2.7f, 0.0f, 0.0f},
-                                   {1.1f, 2.4f, 0.8f, 4.3f, 1.9f, 4.4f, 0.0f},
-                                   {0.6f, 0.0f, 0.3f, 0.0f, 3.1f, 0.0f, 0.0f},
-                                   {0.7f, 1.7f, 0.6f, 2.6f, 2.2f, 6.2f, 0.0f},
-                                   {1.3f, 1.2f, 0.0f, 0.0f, 0.0f, 3.2f, 5.1f},
-                                   {0.1f, 2.0f, 0.0f, 1.4f, 0.0f, 1.9f, 6.3f} };
-            static float scale_min = 0;
-            static float scale_max = 6.3f;
-            static const char* xlabels[] = { "C1","C2","C3","C4","C5","C6","C7" };
-            static const char* ylabels[] = { "R1","R2","R3","R4","R5","R6","R7" };
-            static ImPlotHeatmapFlags hm_flags = 0;
-            if (ImPlot::BeginPlot("##Heatmap1", ImVec2(225, 225), ImPlotFlags_NoLegend | ImPlotFlags_NoMouseText)) {
-                ImPlot::SetupAxes(nullptr, nullptr, axes_flags, axes_flags);
-                ImPlot::SetupAxisTicks(ImAxis_X1, 0 + 1.0 / 14.0, 1 - 1.0 / 14.0, 7, xlabels);
-                ImPlot::SetupAxisTicks(ImAxis_Y1, 1 - 1.0 / 14.0, 0 + 1.0 / 14.0, 7, ylabels);
-                ImPlot::PlotHeatmap("heat", values1[0], 7, 7, scale_min, scale_max, "%g", ImPlotPoint(0, 0), ImPlotPoint(1, 1), hm_flags);
-                ImPlot::EndPlot();
-            }
-            ImPlot::PopColormap(map);
+            ImPlot::PopColormap();
             ImGui::End();
         }
 
@@ -383,6 +397,35 @@ void mainLoop3(Init::ImguiAndOpenGLHandler& handler) {
         if (show_plot_demo_window)
             ImPlot::ShowDemoWindow();
         
+        float scene_widget_width;
+        float scene_widget_height;
+        ImGui::Begin("Scene");
+        {
+            ImGui::BeginChild("GameRender");
+
+            scene_widget_width = ImGui::GetContentRegionAvail().x;
+            scene_widget_height = ImGui::GetContentRegionAvail().y;
+
+            ImGui::Image(
+                (ImTextureID)sceneBuffer.getFrameTexture(),
+                ImGui::GetContentRegionAvail(),
+                ImVec2(0, 1),
+                ImVec2(1, 0)
+            );
+            ImGui::EndChild();
+        }
+        ImGui::End();
+        
+        sceneBuffer.RescaleFrameBuffer(scene_widget_width, scene_widget_height);
+        sceneBuffer.Bind();
+        glViewport(0, 0, scene_widget_width, scene_widget_height);
+        glClearColor(0.45f, 0.55f, 0.60f, 1.00f);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        if (scene_widget_height > 0)
+            plotScene.setPerspective(glm::radians(45.0f), scene_widget_width / scene_widget_height, 0.1f, 100.0f);
+        plotScene.render();
+        sceneBuffer.Unbind();
+
         handler.endLoopRoutine();
     }
 }

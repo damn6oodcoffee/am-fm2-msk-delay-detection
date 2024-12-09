@@ -242,6 +242,7 @@ namespace Task3 {
             for (int j{ 0 }; j < data[0].size(); ++j) {
                 if (max < data[i][j]) {
                     indices = { i, j };
+                    max = data[i][j];
                 }
             }
         }
@@ -267,8 +268,21 @@ namespace Task3 {
         auto delayAndCarrierOffsetIndices = getDelayAndCarrierOffsetIndices(ambigFunc);
         AmbiguityFuncExperimentResult result;
         result.ambigFunc = ambigFunc;
-        result.carrierOffsetEstimate = delayAndCarrierOffsetIndices.first;
-        result.delayEstimate = delayAndCarrierOffsetIndices.second;
+        double dt{ 1 / iqSignal.getSampleRate() };
+        double df{ iqSignal.getSampleRate() / ambigFunc[0].size()};
+
+        result.timeBounds = { 0, dt * ambigFunc.size() };
+        result.freqBounds = { -df * ambigFunc[0].size() / 2, df * ambigFunc[0].size() / 2 };
+
+        for (size_t i{ 0 }; i < ambigFunc.size(); ++i) {
+            result.timePoints.push_back(dt * i);
+        }
+        for (size_t j{ 0 }; j < ambigFunc[0].size(); ++j) {
+            result.freqPoints.push_back(result.freqBounds.first + df * j);
+        }
+
+        result.delayEstimate = dt * delayAndCarrierOffsetIndices.first;
+        result.carrierOffsetEstimate = result.freqBounds.first + df * delayAndCarrierOffsetIndices.second;
 
         for (auto row : ambigFunc)
             for (auto elt : row)

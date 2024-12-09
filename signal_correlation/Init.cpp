@@ -50,6 +50,13 @@ ImguiAndOpenGLHandler::ImguiAndOpenGLHandler() {
     pWindowHandler = std::make_unique<detail::glfwWindowHandler>(1280, 720, "Dear ImGui GLFW+OpenGL3 example", nullptr, nullptr);
     pWindowHandler->makeCurrent();
     pWindowHandler->setUpGlad();
+    glEnable(GL_DEPTH_TEST);
+    //glEnable(GL_CULL_FACE);  
+    // glFrontFace(GL_CCW);  
+    // For text rendering:
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
     // Setup Dear ImGui context
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
