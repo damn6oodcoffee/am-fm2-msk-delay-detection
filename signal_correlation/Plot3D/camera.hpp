@@ -1,6 +1,7 @@
 #ifndef CAMERA_HPP
 #define CAMERA_HPP
 
+#include <algorithm>
 //#include <glad/glad.h>
 #include <glad/glad.h>
 //#include <gl/gl.h>
@@ -32,6 +33,13 @@ public:
     float MovementSpeed;
     float MouseSensitivity;
     float Zoom;
+    
+    glm::vec3 pos;
+    glm::vec3 center;
+    glm::vec3 up;
+    float radius;
+    float azimuth;
+    float elevation;
 
     Camera(glm::vec3 position = glm::vec3(0.0f, 0.0f, 0.0f),
            glm::vec3 up = glm::vec3(0.0f, 1.0f, 0.0f),
@@ -47,6 +55,12 @@ public:
            , Pitch(pitch)
     {
         updateCameraVectors();
+        pos = glm::vec3(2.0f, 2.0f, 2.0f);
+        center = glm::vec3(0.5f, 0.5f, 0.5f);
+        this->up = glm::vec3(0.0f, 1.0f, 0.0f);
+        radius = 2.65f;
+        azimuth = 45.0f;
+        elevation = 45.0f;
     }
 
     glm::mat4 GetViewMatrix() {
@@ -68,11 +82,30 @@ public:
         glm::mat4 view = rotation * translation;
         return view;
         */
-        glm::vec3 pos{ 2.0f, 2.0f, 2.0f };
-        glm::vec3 center{ 0.5f, 0.5f, 0.5f };
-        glm::vec3 up{ 0.0f, 1.0f, 0.0f };
+        setUpPosVector();
         return glm::lookAt(pos, center, up);
         return glm::lookAt(Position, Position + Front, Up);
+    }
+    
+    void setUpPosVector() {
+        float azRads = glm::radians(azimuth);
+        float elRads = glm::radians(elevation);
+        float planeRadius{ radius * cos(elRads) };
+        float x{ planeRadius * cos(azRads) };
+        float z{ planeRadius * sin(azRads) };
+        float y{ radius * sin(elRads) };
+        pos = { x, y, z };
+        pos += center;
+        //pos = glm::vec3(2.0f, 2.0f, 2.0f);
+    }
+
+    void rotateHorizontally(float offset) {
+        azimuth += offset;
+    }
+
+    void rotateVertically(float offset) {
+        elevation += offset;
+        elevation = std::clamp(elevation, 0.0f, 89.0f);
     }
 
     glm::mat4 FaceCameraDirectionMatrix() {

@@ -272,7 +272,7 @@ namespace Task3 {
         double df{ iqSignal.getSampleRate() / ambigFunc[0].size()};
 
         result.timeBounds = { 0, dt * ambigFunc.size() };
-        result.freqBounds = { -df * ambigFunc[0].size() / 2, df * ambigFunc[0].size() / 2 };
+        result.freqBounds = { -df * (ambigFunc[0].size() / 2), df * (ambigFunc[0].size() / 2) };
 
         for (size_t i{ 0 }; i < ambigFunc.size(); ++i) {
             result.timePoints.push_back(dt * i);

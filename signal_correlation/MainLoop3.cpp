@@ -413,6 +413,23 @@ void mainLoop3(Init::ImguiAndOpenGLHandler& handler) {
                 ImVec2(1, 0)
             );
             ImGui::EndChild();
+            if (ImGui::IsWindowFocused(ImGuiFocusedFlags_ChildWindows)) {
+                if (ImGui::IsKeyPressed(ImGuiKey::ImGuiKey_DownArrow)) {
+                    plotScene.camera.rotateVertically(-5.0f);
+                }
+                if (ImGui::IsKeyPressed(ImGuiKey::ImGuiKey_UpArrow)) {
+                    plotScene.camera.rotateVertically(5.0f);
+
+                }
+                if (ImGui::IsKeyPressed(ImGuiKey::ImGuiKey_LeftArrow)) {
+
+                    plotScene.camera.rotateHorizontally(5.0f);
+                }
+                if (ImGui::IsKeyPressed(ImGuiKey::ImGuiKey_RightArrow)) {
+                    plotScene.camera.rotateHorizontally(-5.0f);
+                }
+
+            }
         }
         ImGui::End();
         
@@ -425,6 +442,8 @@ void mainLoop3(Init::ImguiAndOpenGLHandler& handler) {
             plotScene.setPerspective(glm::radians(45.0f), scene_widget_width / scene_widget_height, 0.1f, 100.0f);
         plotScene.render();
         sceneBuffer.Unbind();
+
+       // plotScene.camera.rotateHorizontally(1.0f);
 
         handler.endLoopRoutine();
     }
